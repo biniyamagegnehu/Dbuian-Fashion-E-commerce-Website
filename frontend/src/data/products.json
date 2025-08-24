@@ -1,0 +1,50 @@
+{
+  "products": [
+    {
+      "id": "1",
+      "name": "Neo University Hoodie",
+      "price": 49.99,
+      "category": "Hoodies",
+      "size": ["S", "M", "L", "XL"],
+      "stock": 15,
+      "image": "/images/hoodie-1.jpg",
+      "description": "Premium comfort hoodie with futuristic design elements perfect for campus life.",
+      "colors": ["#3a86ff", "#ff006e", "#8338ec"],
+      "featured": true,
+      "trending": true
+    },
+    {
+      "id": "2",
+      "name": "Quantum Joggers",
+      "price": 39.99,
+      "category": "Pants",
+      "size": ["S", "M", "L"],
+      "stock": 22,
+      "image": "/images/joggers-1.jpg",
+      "description": "Tech-infused joggers with adaptive fit and smart fabric technology.",
+      "colors": ["#000", "#333", "#666"],
+      "featured": true,
+      "trending": false
+    },
+    {
+      "id": "3",
+      "name": "Cybernetic Tee",
+      "price": 29.99,
+      "category": "T-Shirts",
+      "size": ["XS", "S", "M", "L", "XL"],
+      "stock": 30,
+      "image": "/images/tshirt-1.jpg",
+      "description": "Minimalist tee with responsive fabric that adapts to your body temperature.",
+      "colors": ["#fff", "#f1faee", "#e9f5db"],
+      "featured": false,
+      "trending": true
+    }
+  ],
+  "categories": [
+    "Hoodies",
+    "T-Shirts",
+    "Pants",
+    "Accessories",
+    "Footwear"
+  ]
+}
