@@ -138,7 +138,7 @@ const Products = () => {
             University Collection
           </motion.h1>
           <motion.p 
-            className="text-gray-400 text-lg max-w-2xl mx-auto"
+            className="text-gray-300 text-lg max-w-2xl mx-auto"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
@@ -154,7 +154,7 @@ const Products = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.3 }}
         >
-          <GlassCard className="p-4">
+          <GlassCard className="p-4 backdrop-blur-xl">
             <div className="flex flex-col md:flex-row gap-4 items-center">
               <div className="flex-1 relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -167,7 +167,7 @@ const Products = () => {
                   placeholder="Search products..."
                   value={filters.search}
                   onChange={(e) => handleFilterChange({ search: e.target.value })}
-                  className="w-full pl-10 pr-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 text-white placeholder-gray-400"
+                  className="w-full pl-10 pr-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 text-white placeholder-gray-500"
                 />
               </div>
               <div className="flex gap-2">
@@ -176,7 +176,7 @@ const Products = () => {
                   className={`p-2 rounded-lg transition-colors ${
                     activeView === 'grid' 
                       ? 'bg-cyan-400/20 text-cyan-400' 
-                      : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                      : 'text-gray-400 hover:text-cyan-300 hover:bg-cyan-400/10'
                   }`}
                 >
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -188,7 +188,7 @@ const Products = () => {
                   className={`p-2 rounded-lg transition-colors ${
                     activeView === 'list' 
                       ? 'bg-cyan-400/20 text-cyan-400' 
-                      : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                      : 'text-gray-400 hover:text-cyan-300 hover:bg-cyan-400/10'
                   }`}
                 >
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -208,9 +208,9 @@ const Products = () => {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.4 }}
             >
-              <GlassCard className="p-6 sticky top-28">
+              <GlassCard className="p-6 backdrop-blur-xl sticky top-28">
                 <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-lg font-semibold">Filters</h3>
+                  <h3 className="text-lg font-semibold text-gray-300">Filters</h3>
                   <button 
                     onClick={clearFilters}
                     className="text-sm text-cyan-400 hover:text-cyan-300 transition-colors"
@@ -236,7 +236,7 @@ const Products = () => {
                         className={`block w-full text-left px-3 py-2 rounded-lg transition-colors ${
                           filters.category === category
                             ? 'bg-cyan-400/20 text-cyan-400'
-                            : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                            : 'text-gray-400 hover:text-cyan-300 hover:bg-cyan-400/10'
                         }`}
                       >
                         {category}
@@ -256,12 +256,12 @@ const Products = () => {
               transition={{ duration: 0.6, delay: 0.5 }}
               className="flex flex-col sm:flex-row justify-between items-center mb-8"
             >
-              <p className="text-gray-400 mb-4 sm:mb-0">
+              <p className="text-gray-300 mb-4 sm:mb-0">
                 Showing {filteredProducts.length} of {products.length} products
               </p>
               
               <div className="flex items-center gap-4">
-                <span className="text-gray-400 text-sm">Sort by:</span>
+                <span className="text-gray-300 text-sm">Sort by:</span>
                 <select
                   value={filters.sort}
                   onChange={(e) => handleFilterChange({ sort: e.target.value })}
@@ -284,7 +284,7 @@ const Products = () => {
                   exit={{ opacity: 0, scale: 0.9 }}
                   transition={{ duration: 0.4 }}
                 >
-                  <GlassCard className="p-12 text-center">
+                  <GlassCard className="p-12 text-center backdrop-blur-xl">
                     <div className="w-24 h-24 bg-gradient-to-r from-cyan-400/10 to-purple-400/10 rounded-full flex items-center justify-center mx-auto mb-6">
                       <svg className="w-12 h-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
