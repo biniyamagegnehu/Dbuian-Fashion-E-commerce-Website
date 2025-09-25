@@ -18,6 +18,11 @@ const ProductDetail = () => {
   const [quantity, setQuantity] = useState(1);
   const [activeImage, setActiveImage] = useState(0);
 
+  // Format price in Birr
+  const formatPrice = (price) => {
+    return `${price} Birr`;
+  };
+
   useEffect(() => {
     const loadProduct = async () => {
       try {
@@ -110,8 +115,22 @@ const ProductDetail = () => {
             transition={{ duration: 0.6, delay: 0.2 }}
           >
             <GlassCard className="p-6 backdrop-blur-xl">
-              <h1 className="text-3xl font-bold text-gray-300 mb-2">{product.name}</h1>
-              <p className="text-2xl font-bold text-cyan-400 mb-4">${product.price}</p>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h1 className="text-3xl font-bold text-white mb-2">{product.name}</h1>
+                  <div className="flex items-center space-x-3">
+                    <span className="px-3 py-1 bg-blue-400/20 text-blue-300 text-sm rounded-full border border-blue-400/30">
+                      {product.gender}
+                    </span>
+                    <span className="px-3 py-1 bg-purple-400/20 text-purple-300 text-sm rounded-full border border-purple-400/30">
+                      {product.category}
+                    </span>
+                  </div>
+                </div>
+                <span className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+                  {formatPrice(product.price)}
+                </span>
+              </div>
               
               <div className="flex items-center mb-4">
                 <div className="flex text-yellow-400">
@@ -124,11 +143,11 @@ const ProductDetail = () => {
                 <span className="ml-2 text-gray-400">(24 reviews)</span>
               </div>
 
-              <p className="text-gray-400 mb-6">{product.description}</p>
+              <p className="text-gray-300 mb-6 leading-relaxed">{product.description}</p>
 
               {/* Size selector */}
               <div className="mb-6">
-                <h3 className="font-medium text-gray-300 mb-3">Select Size</h3>
+                <h3 className="font-medium text-white mb-3">Select Size</h3>
                 <div className="flex flex-wrap gap-2">
                   {product.size.map(size => (
                     <motion.button
@@ -136,10 +155,10 @@ const ProductDetail = () => {
                       onClick={() => setSelectedSize(size)}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                      className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
                         selectedSize === size
-                          ? 'bg-cyan-500 text-white'
-                          : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50'
+                          ? 'bg-gradient-to-r from-green-400 to-emerald-400 text-gray-900 shadow-lg shadow-green-400/25'
+                          : 'bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white border border-white/10'
                       }`}
                     >
                       {size}
@@ -150,21 +169,21 @@ const ProductDetail = () => {
 
               {/* Quantity selector */}
               <div className="mb-6">
-                <h3 className="font-medium text-gray-300 mb-3">Quantity</h3>
+                <h3 className="font-medium text-white mb-3">Quantity</h3>
                 <div className="flex items-center">
                   <button
                     onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                    className="p-2 rounded-l-lg bg-gray-800/50 text-gray-400 hover:text-white hover:bg-gray-700/50 transition-colors"
+                    className="p-2 rounded-l-lg bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-colors border border-white/10"
                     disabled={quantity <= 1}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z" clipRule="evenodd" />
                     </svg>
                   </button>
-                  <span className="px-4 py-2 bg-gray-800/50 border-y border-gray-700 text-gray-300">{quantity}</span>
+                  <span className="px-4 py-2 bg-white/5 border-y border-white/10 text-white font-medium">{quantity}</span>
                   <button
                     onClick={() => setQuantity(q => Math.min(product.stock, q + 1))}
-                    className="p-2 rounded-r-lg bg-gray-800/50 text-gray-400 hover:text-white hover:bg-gray-700/50 transition-colors"
+                    className="p-2 rounded-r-lg bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-colors border border-white/10"
                     disabled={quantity >= product.stock}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -181,18 +200,38 @@ const ProductDetail = () => {
                 className="w-full py-3 text-lg mb-4 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600"
                 disabled={product.stock === 0}
               >
-                {product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
+                {product.stock === 0 ? 'Out of Stock' : `Add to Cart - ${formatPrice(product.price * quantity)}`}
               </AnimatedButton>
 
               {/* Product details */}
-              <div className="border-t border-gray-700 pt-4">
-                <h3 className="font-medium text-gray-300 mb-2">Product Details</h3>
-                <ul className="text-sm text-gray-400 space-y-1">
-                  <li><span className="font-medium">Category:</span> {product.category}</li>
-                  <li><span className="font-medium">Material:</span> 100% Premium Cotton</li>
-                  <li><span className="font-medium">Care:</span> Machine wash cold, tumble dry low</li>
-                  <li><span className="font-medium">SKU:</span> DB-{product.id}</li>
-                </ul>
+              <div className="border-t border-white/10 pt-4">
+                <h3 className="font-medium text-white mb-3">Product Details</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-400">Gender:</span>
+                    <p className="text-white">{product.gender}</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-400">Category:</span>
+                    <p className="text-white">{product.category}</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-400">Material:</span>
+                    <p className="text-white">100% Premium Cotton</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-400">Care:</span>
+                    <p className="text-white">Machine wash cold</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-400">Available Sizes:</span>
+                    <p className="text-white">{product.size.join(', ')}</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-400">SKU:</span>
+                    <p className="text-white">DB-{product.id}</p>
+                  </div>
+                </div>
               </div>
             </GlassCard>
           </motion.div>
