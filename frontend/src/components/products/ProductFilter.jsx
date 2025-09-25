@@ -2,65 +2,69 @@ import React from 'react';
 import { motion } from 'framer-motion';
 
 const ProductFilter = ({ filters, onChange, onClear }) => {
-  const categories = ['Hoodies', 'T-Shirts', 'Pants', 'Accessories', 'Footwear'];
+  // Filter options
+  const genders = ['Men', 'Women', 'Unisex'];
+  const clothingTypes = [
+    'T-Shirts', 'Hoodies & Sweatshirts', 'Jackets & Coats', 
+    'Pants & Trousers', 'Jeans', 'Dresses', 'Skirts', 'Footwear'
+  ];
   const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
   const priceRanges = [
-    { label: 'Under $25', value: '0-25' },
-    { label: '$25 - $50', value: '25-50' },
-    { label: '$50 - $100', value: '50-100' },
-    { label: '$100 - $200', value: '100-200' },
-    { label: 'Over $200', value: '200-0' }
+    { label: 'Under 500 Birr', value: '0-500' },
+    { label: '500 Birr – 1500 Birr', value: '500-1500' },
+    { label: '1500 Birr – 3000 Birr', value: '1500-3000' },
+    { label: 'Above 3000 Birr', value: '3000-0' }
   ];
 
   const handleChange = (filterType, value) => {
     onChange({ [filterType]: value });
   };
 
-  const hasActiveFilters = filters.category || filters.priceRange || filters.size || filters.sort !== 'newest';
+  const hasActiveFilters = filters.gender || filters.clothingType || filters.size || filters.priceRange || filters.sort !== 'newest';
 
   return (
     <div className="space-y-6">
-      {/* Category filter */}
+      {/* Gender filter */}
       <motion.div
         initial={{ opacity: 0, x: -10 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.3 }}
       >
         <h4 className="font-semibold text-white mb-3 flex items-center">
-          <span className="w-1 h-4 bg-gradient-to-b from-cyan-400 to-blue-400 rounded-full mr-2"></span>
-          Category
+          <span className="w-1 h-4 bg-gradient-to-b from-blue-400 to-indigo-400 rounded-full mr-2"></span>
+          By Gender
         </h4>
         <div className="space-y-1">
-          {categories.map((category, index) => (
+          {genders.map((gender, index) => (
             <motion.label
-              key={category}
+              key={gender}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.3, delay: index * 0.05 }}
               className={`flex items-center p-3 rounded-xl cursor-pointer transition-all duration-200 ${
-                filters.category === category
-                  ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-400/30'
+                filters.gender === gender
+                  ? 'bg-gradient-to-r from-blue-500/20 to-indigo-500/20 border border-blue-400/30'
                   : 'bg-white/5 hover:bg-white/10 border border-transparent'
               }`}
             >
               <input
                 type="radio"
-                name="category"
-                checked={filters.category === category}
-                onChange={() => handleChange('category', category)}
-                className="h-4 w-4 text-cyan-400 focus:ring-cyan-400 border-gray-600 rounded bg-gray-800/50"
+                name="gender"
+                checked={filters.gender === gender}
+                onChange={() => handleChange('gender', gender)}
+                className="h-4 w-4 text-blue-400 focus:ring-blue-400 border-gray-600 rounded bg-gray-800/50"
               />
               <span className={`ml-3 font-medium ${
-                filters.category === category ? 'text-cyan-300' : 'text-gray-300'
+                filters.gender === gender ? 'text-blue-300' : 'text-gray-300'
               }`}>
-                {category}
+                {gender}
               </span>
             </motion.label>
           ))}
         </div>
       </motion.div>
 
-      {/* Price range filter */}
+      {/* Clothing Type filter */}
       <motion.div
         initial={{ opacity: 0, x: -10 }}
         animate={{ opacity: 1, x: 0 }}
@@ -68,32 +72,32 @@ const ProductFilter = ({ filters, onChange, onClear }) => {
       >
         <h4 className="font-semibold text-white mb-3 flex items-center">
           <span className="w-1 h-4 bg-gradient-to-b from-purple-400 to-pink-400 rounded-full mr-2"></span>
-          Price Range
+          By Clothing Type
         </h4>
         <div className="space-y-1">
-          {priceRanges.map((range, index) => (
+          {clothingTypes.map((type, index) => (
             <motion.label
-              key={range.value}
+              key={type}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.3, delay: 0.1 + index * 0.05 }}
+              transition={{ duration: 0.3, delay: 0.1 + index * 0.03 }}
               className={`flex items-center p-3 rounded-xl cursor-pointer transition-all duration-200 ${
-                filters.priceRange === range.value
+                filters.clothingType === type
                   ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-400/30'
                   : 'bg-white/5 hover:bg-white/10 border border-transparent'
               }`}
             >
               <input
                 type="radio"
-                name="priceRange"
-                checked={filters.priceRange === range.value}
-                onChange={() => handleChange('priceRange', range.value)}
+                name="clothingType"
+                checked={filters.clothingType === type}
+                onChange={() => handleChange('clothingType', type)}
                 className="h-4 w-4 text-purple-400 focus:ring-purple-400 border-gray-600 rounded bg-gray-800/50"
               />
-              <span className={`ml-3 font-medium ${
-                filters.priceRange === range.value ? 'text-purple-300' : 'text-gray-300'
+              <span className={`ml-3 font-medium text-sm ${
+                filters.clothingType === type ? 'text-purple-300' : 'text-gray-300'
               }`}>
-                {range.label}
+                {type}
               </span>
             </motion.label>
           ))}
@@ -108,7 +112,7 @@ const ProductFilter = ({ filters, onChange, onClear }) => {
       >
         <h4 className="font-semibold text-white mb-3 flex items-center">
           <span className="w-1 h-4 bg-gradient-to-b from-green-400 to-emerald-400 rounded-full mr-2"></span>
-          Size
+          By Size
         </h4>
         <div className="grid grid-cols-3 gap-2">
           {sizes.map((size, index) => (
@@ -130,7 +134,7 @@ const ProductFilter = ({ filters, onChange, onClear }) => {
         </div>
       </motion.div>
 
-      {/* Sort filter */}
+      {/* Price Range filter */}
       <motion.div
         initial={{ opacity: 0, x: -10 }}
         animate={{ opacity: 1, x: 0 }}
@@ -138,12 +142,52 @@ const ProductFilter = ({ filters, onChange, onClear }) => {
       >
         <h4 className="font-semibold text-white mb-3 flex items-center">
           <span className="w-1 h-4 bg-gradient-to-b from-orange-400 to-red-400 rounded-full mr-2"></span>
+          By Price Range
+        </h4>
+        <div className="space-y-1">
+          {priceRanges.map((range, index) => (
+            <motion.label
+              key={range.value}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3, delay: 0.3 + index * 0.05 }}
+              className={`flex items-center p-3 rounded-xl cursor-pointer transition-all duration-200 ${
+                filters.priceRange === range.value
+                  ? 'bg-gradient-to-r from-orange-500/20 to-red-500/20 border border-orange-400/30'
+                  : 'bg-white/5 hover:bg-white/10 border border-transparent'
+              }`}
+            >
+              <input
+                type="radio"
+                name="priceRange"
+                checked={filters.priceRange === range.value}
+                onChange={() => handleChange('priceRange', range.value)}
+                className="h-4 w-4 text-orange-400 focus:ring-orange-400 border-gray-600 rounded bg-gray-800/50"
+              />
+              <span className={`ml-3 font-medium ${
+                filters.priceRange === range.value ? 'text-orange-300' : 'text-gray-300'
+              }`}>
+                {range.label}
+              </span>
+            </motion.label>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* Sort filter */}
+      <motion.div
+        initial={{ opacity: 0, x: -10 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.3, delay: 0.4 }}
+      >
+        <h4 className="font-semibold text-white mb-3 flex items-center">
+          <span className="w-1 h-4 bg-gradient-to-b from-cyan-400 to-blue-400 rounded-full mr-2"></span>
           Sort By
         </h4>
         <select
           value={filters.sort}
           onChange={(e) => handleChange('sort', e.target.value)}
-          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-400 text-white placeholder-gray-400 appearance-none bg-gradient-to-r from-white/5 to-white/10"
+          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-cyan-400 text-white placeholder-gray-400 appearance-none bg-gradient-to-r from-white/5 to-white/10"
         >
           <option value="newest" className="bg-gray-800 text-white">Newest First</option>
           <option value="price-low" className="bg-gray-800 text-white">Price: Low to High</option>
@@ -162,23 +206,28 @@ const ProductFilter = ({ filters, onChange, onClear }) => {
         >
           <h4 className="font-semibold text-cyan-300 mb-2 text-sm">Active Filters:</h4>
           <div className="flex flex-wrap gap-2">
-            {filters.category && (
-              <span className="px-3 py-1 bg-cyan-400/20 text-cyan-300 text-xs rounded-full border border-cyan-400/30">
-                🏷️ {filters.category}
+            {filters.gender && (
+              <span className="px-3 py-1 bg-blue-400/20 text-blue-300 text-xs rounded-full border border-blue-400/30">
+                👤 {filters.gender}
               </span>
             )}
-            {filters.priceRange && (
+            {filters.clothingType && (
               <span className="px-3 py-1 bg-purple-400/20 text-purple-300 text-xs rounded-full border border-purple-400/30">
-                💰 {priceRanges.find(r => r.value === filters.priceRange)?.label}
+                👕 {filters.clothingType}
               </span>
             )}
             {filters.size && (
               <span className="px-3 py-1 bg-green-400/20 text-green-300 text-xs rounded-full border border-green-400/30">
-                📏 Size: {filters.size}
+                📏 {filters.size}
+              </span>
+            )}
+            {filters.priceRange && (
+              <span className="px-3 py-1 bg-orange-400/20 text-orange-300 text-xs rounded-full border border-orange-400/30">
+                💰 {priceRanges.find(r => r.value === filters.priceRange)?.label}
               </span>
             )}
             {filters.sort !== 'newest' && (
-              <span className="px-3 py-1 bg-orange-400/20 text-orange-300 text-xs rounded-full border border-orange-400/30">
+              <span className="px-3 py-1 bg-cyan-400/20 text-cyan-300 text-xs rounded-full border border-cyan-400/30">
                 🔄 {filters.sort.replace('-', ' ')}
               </span>
             )}
