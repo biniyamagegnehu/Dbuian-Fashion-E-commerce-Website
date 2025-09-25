@@ -4,6 +4,11 @@ import { Link } from 'react-router-dom';
 import GlassCard from '../ui/GlassCard';
 
 const ProductCard = ({ product, layout = 'grid' }) => {
+  // Format price in Birr
+  const formatPrice = (price) => {
+    return `${price} Birr`;
+  };
+
   if (layout === 'list') {
     return (
       <motion.div
@@ -39,14 +44,14 @@ const ProductCard = ({ product, layout = 'grid' }) => {
                 
                 <div className="flex items-center justify-between">
                   <span className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
-                    ${product.price}
+                    {formatPrice(product.price)}
                   </span>
                   <div className="flex items-center space-x-4">
                     <span className="text-sm text-cyan-300/80 bg-cyan-400/10 px-2 py-1 rounded-full">
-                      {product.category}
+                      {product.gender} • {product.category}
                     </span>
                     <div className="flex space-x-1">
-                      {product.colors.slice(0, 3).map((color, index) => (
+                      {product.colors?.slice(0, 3).map((color, index) => (
                         <span
                           key={index}
                           className="w-3 h-3 rounded-full border border-white/20 shadow-sm"
@@ -82,24 +87,28 @@ const ProductCard = ({ product, layout = 'grid' }) => {
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             
-            {/* Category badge */}
+            {/* Gender badge */}
             <div className="absolute top-3 left-3">
               <span className="px-3 py-1 bg-black/40 text-cyan-300 text-xs rounded-full backdrop-blur-md border border-cyan-400/20">
+                {product.gender}
+              </span>
+            </div>
+            
+            {/* Category badge */}
+            <div className="absolute top-3 right-3">
+              <span className="px-3 py-1 bg-black/40 text-purple-300 text-xs rounded-full backdrop-blur-md border border-purple-400/20">
                 {product.category}
               </span>
             </div>
             
             {/* Featured badge */}
             {product.featured && (
-              <div className="absolute top-3 right-3">
-                <span className="px-2 py-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs rounded-full backdrop-blur-md border border-purple-400/20">
+              <div className="absolute top-12 left-3">
+                <span className="px-2 py-1 bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs rounded-full backdrop-blur-md border border-orange-400/20">
                   Featured
                 </span>
               </div>
             )}
-            
-            {/* Hover overlay */}
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/10 to-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           </div>
           
           <div className="p-5">
@@ -114,12 +123,12 @@ const ProductCard = ({ product, layout = 'grid' }) => {
             
             <div className="flex items-center justify-between mb-3">
               <span className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
-                ${product.price}
+                {formatPrice(product.price)}
               </span>
               
               <div className="flex items-center space-x-2">
                 <div className="flex -space-x-1">
-                  {product.colors.slice(0, 4).map((color, index) => (
+                  {product.colors?.slice(0, 4).map((color, index) => (
                     <span
                       key={index}
                       className="w-4 h-4 rounded-full border-2 border-gray-800 shadow-sm"
@@ -127,7 +136,7 @@ const ProductCard = ({ product, layout = 'grid' }) => {
                     />
                   ))}
                 </div>
-                {product.colors.length > 4 && (
+                {product.colors?.length > 4 && (
                   <span className="text-xs text-cyan-300/70 bg-cyan-400/10 px-1 rounded">
                     +{product.colors.length - 4}
                   </span>
@@ -139,7 +148,7 @@ const ProductCard = ({ product, layout = 'grid' }) => {
             <div className="flex items-center justify-between pt-3 border-t border-white/10">
               <div className="flex items-center space-x-3">
                 <span className="text-xs text-cyan-300/70 bg-cyan-400/10 px-2 py-1 rounded-full">
-                  {product.size.length} sizes
+                  {product.size?.length || 6} sizes
                 </span>
                 <span className={`text-xs px-2 py-1 rounded-full ${
                   product.stock > 10 
