@@ -691,27 +691,6 @@ const Home = () => {
             Join thousands of students who have already upgraded their wardrobe with our futuristic designs.
           </motion.p>
           
-          {/* Newsletter signup */}
-          <motion.div
-            className="max-w-md mx-auto mb-12"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            viewport={{ once: true }}
-          >
-            <div className="flex flex-col sm:flex-row gap-2">
-              <input 
-                type="email" 
-                placeholder="Your university email" 
-                className="flex-1 px-4 py-3 bg-white/10 border border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400"
-              />
-              <button className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg font-semibold hover:from-cyan-600 hover:to-blue-600 transition-all">
-                Subscribe
-              </button>
-            </div>
-            <p className="text-sm text-gray-400 mt-2">Get 15% off your first order</p>
-          </motion.div>
-          
           <motion.div
             className="flex flex-col sm:flex-row gap-4 justify-center"
             initial={{ opacity: 0, y: 20 }}
