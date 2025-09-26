@@ -8,6 +8,11 @@ import AnimatedButton from '../components/ui/AnimatedButton';
 const Cart = () => {
   const { items, removeFromCart, updateQuantity, getCartTotal, clearCart } = useCart();
 
+  // Format price in Birr
+  const formatPrice = (price) => {
+    return `${price} Birr`;
+  };
+
   const handleQuantityChange = (id, size, newQuantity) => {
     if (newQuantity < 1) return;
     updateQuantity(id, size, newQuantity);
@@ -44,8 +49,8 @@ const Cart = () => {
   }
 
   const subtotal = getCartTotal();
-  const shipping = 5.00;
-  const tax = subtotal * 0.08;
+  const shipping = 50; // 50 Birr shipping
+  const tax = subtotal * 0.15; // 15% tax
   const total = subtotal + shipping + tax;
 
   return (
@@ -98,7 +103,7 @@ const Cart = () => {
                       <div className="sm:ml-6 flex-1">
                         <h3 className="text-lg font-medium text-gray-300">{item.name}</h3>
                         <p className="text-gray-400">Size: {item.size}</p>
-                        <p className="text-lg font-semibold text-cyan-400 mt-1">${item.price}</p>
+                        <p className="text-lg font-semibold text-cyan-400 mt-1">{formatPrice(item.price)}</p>
                         
                         <div className="flex items-center mt-4">
                           <div className="flex items-center border border-gray-600 rounded-lg bg-gray-800/50">
@@ -129,7 +134,7 @@ const Cart = () => {
                       
                       <div className="sm:ml-6 mt-4 sm:mt-0">
                         <p className="text-lg font-semibold text-gray-300">
-                          ${(item.price * item.quantity).toFixed(2)}
+                          {formatPrice(item.price * item.quantity)}
                         </p>
                       </div>
                     </motion.div>
@@ -147,23 +152,23 @@ const Cart = () => {
               <div className="space-y-4">
                 <div className="flex justify-between">
                   <span className="text-gray-400">Subtotal</span>
-                  <span className="text-gray-300">${subtotal.toFixed(2)}</span>
+                  <span className="text-gray-300">{formatPrice(subtotal)}</span>
                 </div>
                 
                 <div className="flex justify-between">
                   <span className="text-gray-400">Shipping</span>
-                  <span className="text-gray-300">$5.00</span>
+                  <span className="text-gray-300">{formatPrice(shipping)}</span>
                 </div>
                 
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Tax</span>
-                  <span className="text-gray-300">${tax.toFixed(2)}</span>
+                  <span className="text-gray-400">Tax (15%)</span>
+                  <span className="text-gray-300">{formatPrice(tax)}</span>
                 </div>
                 
                 <div className="border-t border-gray-700 pt-4 flex justify-between text-lg font-semibold">
                   <span className="text-gray-300">Total</span>
                   <span className="text-cyan-400">
-                    ${total.toFixed(2)}
+                    {formatPrice(total)}
                   </span>
                 </div>
               </div>
