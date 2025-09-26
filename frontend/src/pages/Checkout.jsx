@@ -21,6 +21,11 @@ const Checkout = () => {
     phone: ''
   });
 
+  // Format price in Birr
+  const formatPrice = (price) => {
+    return `${price} Birr`;
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -47,8 +52,8 @@ const Checkout = () => {
   }
 
   const subtotal = getCartTotal();
-  const shipping = 5.00;
-  const tax = subtotal * 0.08;
+  const shipping = 50; // 50 Birr shipping
+  const tax = subtotal * 0.15; // 15% tax
   const total = subtotal + shipping + tax;
 
   return (
@@ -228,7 +233,7 @@ const Checkout = () => {
                         <p className="text-gray-300">{item.name} ({item.size})</p>
                         <p className="text-sm text-gray-400">Qty: {item.quantity}</p>
                       </div>
-                      <span className="text-gray-300">${(item.price * item.quantity).toFixed(2)}</span>
+                      <span className="text-gray-300">{formatPrice(item.price * item.quantity)}</span>
                     </div>
                   ))}
                 </div>
@@ -236,22 +241,22 @@ const Checkout = () => {
                 <div className="border-t border-gray-700 mt-6 pt-6 space-y-2">
                   <div className="flex justify-between">
                     <span className="text-gray-400">Subtotal</span>
-                    <span className="text-gray-300">${subtotal.toFixed(2)}</span>
+                    <span className="text-gray-300">{formatPrice(subtotal)}</span>
                   </div>
                   
                   <div className="flex justify-between">
                     <span className="text-gray-400">Shipping</span>
-                    <span className="text-gray-300">${shipping.toFixed(2)}</span>
+                    <span className="text-gray-300">{formatPrice(shipping)}</span>
                   </div>
                   
                   <div className="flex justify-between">
-                    <span className="text-gray-400">Tax</span>
-                    <span className="text-gray-300">${tax.toFixed(2)}</span>
+                    <span className="text-gray-400">Tax (15%)</span>
+                    <span className="text-gray-300">{formatPrice(tax)}</span>
                   </div>
                   
                   <div className="flex justify-between text-lg font-semibold pt-2">
                     <span className="text-gray-300">Total</span>
-                    <span className="text-cyan-400">${total.toFixed(2)}</span>
+                    <span className="text-cyan-400">{formatPrice(total)}</span>
                   </div>
                 </div>
                 
@@ -267,7 +272,7 @@ const Checkout = () => {
                         Processing...
                       </div>
                     ) : (
-                      'Place Order'
+                      `Place Order - ${formatPrice(total)}`
                     )}
                   </AnimatedButton>
                 </div>
