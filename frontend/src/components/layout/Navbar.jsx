@@ -111,18 +111,6 @@ const Navbar = () => {
               </svg>
             </motion.button>
 
-            {/* Admin link for admin users */}
-            {user?.role === 'admin' && (
-              <motion.div whileHover={{ scale: 1.05 }}>
-                <Link
-                  to="/admin"
-                  className="hidden md:block text-sm font-medium text-gray-300 hover:text-cyan-400 transition-colors"
-                >
-                  Admin
-                </Link>
-              </motion.div>
-            )}
-
             {/* Cart with animated counter */}
             <motion.div whileHover={{ scale: 1.05 }} className="relative">
               <button onClick={() => navigate('/cart')} className="p-2 text-gray-300 hover:text-white transition-colors">
@@ -236,16 +224,6 @@ const Navbar = () => {
                     {item.name}
                   </Link>
                 ))}
-                
-                {user?.role === 'admin' && (
-                  <Link
-                    to="/admin"
-                    className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700/50 transition-colors"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Admin Dashboard
-                  </Link>
-                )}
                 
                 <div className="border-t border-gray-700/30 my-2"></div>
                 

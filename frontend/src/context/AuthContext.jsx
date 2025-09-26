@@ -38,27 +38,17 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     dispatch({ type: 'SET_LOADING', payload: true });
     
-    // Simulate API call
+    // Simulate API call - Only customer login now
     return new Promise((resolve, reject) => {
       setTimeout(() => {
-        // Mock authentication - in a real app, this would be an API call
-        if (email === 'admin@dbuian.com' && password === 'admin123') {
-          const user = { 
-            id: '1', 
-            name: 'Admin User', 
-            email: 'admin@dbuian.com',
-            role: 'admin',
-            university: 'Dbuian University'
-          };
-          dispatch({ type: 'LOGIN', payload: user });
-          localStorage.setItem('user', JSON.stringify(user));
-          resolve(user);
-        } else if (email === 'student@dbuian.com' && password === 'student123') {
+        // Mock authentication - All users are customers
+        if ((email === 'student@dbuian.com' && password === 'student123') || 
+            (email === 'customer@dbuian.com' && password === 'customer123')) {
           const user = { 
             id: '2', 
-            name: 'Student User', 
-            email: 'student@dbuian.com',
-            role: 'student',
+            name: 'Customer User', 
+            email: email,
+            role: 'customer', // All users are customers now
             university: 'Dbuian University'
           };
           dispatch({ type: 'LOGIN', payload: user });
@@ -80,13 +70,13 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     dispatch({ type: 'SET_LOADING', payload: true });
     
-    // Simulate API call
+    // Simulate API call - All new registrations are customers
     return new Promise((resolve) => {
       setTimeout(() => {
         const user = { 
           id: Date.now().toString(), 
           ...userData,
-          role: 'student'
+          role: 'customer' // Always customer role
         };
         dispatch({ type: 'LOGIN', payload: user });
         localStorage.setItem('user', JSON.stringify(user));

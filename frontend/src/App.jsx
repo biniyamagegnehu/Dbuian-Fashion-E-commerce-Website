@@ -12,7 +12,6 @@ import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import AdminDashboard from './pages/AdminDashboard';
 
 const pageVariants = {
   initial: { opacity: 0, y: 20 },
@@ -55,7 +54,6 @@ function App() {
                   <Route path="/checkout" element={<AnimatedPage><Checkout /></AnimatedPage>} />
                   <Route path="/login" element={<AnimatedPage><Login /></AnimatedPage>} />
                   <Route path="/register" element={<AnimatedPage><Register /></AnimatedPage>} />
-                  <Route path="/admin" element={<AnimatedPage><AdminDashboard /></AnimatedPage>} />
                 </Routes>
               </AnimatePresence>
             </main>

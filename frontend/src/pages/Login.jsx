@@ -203,35 +203,6 @@ const Login = () => {
               </AnimatedButton>
             </motion.div>
           </form>
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.9 }}
-            className="mt-8"
-          >
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-700" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-gray-900 text-gray-400">Demo credentials</span>
-              </div>
-            </div>
-
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <div className="text-center p-3 bg-gray-800/50 rounded-lg border border-gray-700">
-                <p className="text-xs font-medium text-cyan-400 mb-1">Admin</p>
-                <p className="text-xs text-gray-400">admin@dbuian.com</p>
-                <p className="text-xs text-gray-400">admin123</p>
-              </div>
-              <div className="text-center p-3 bg-gray-800/50 rounded-lg border border-gray-700">
-                <p className="text-xs font-medium text-cyan-400 mb-1">Student</p>
-                <p className="text-xs text-gray-400">student@dbuian.com</p>
-                <p className="text-xs text-gray-400">student123</p>
-              </div>
-            </div>
-          </motion.div>
         </GlassCard>
       </motion.div>
     </div>
