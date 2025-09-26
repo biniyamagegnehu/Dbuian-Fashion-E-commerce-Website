@@ -2,9 +2,9 @@ import React from 'react';
 import { motion } from 'framer-motion';
 
 const ProductFilter = ({ filters, onChange, onClear }) => {
-  // Filter options
+  // Filter options - using actual data from products
   const genders = ['Men', 'Women', 'Unisex'];
-  const clothingTypes = [
+  const categories = [
     'T-Shirts', 'Hoodies & Sweatshirts', 'Jackets & Coats', 
     'Pants & Trousers', 'Jeans', 'Dresses', 'Skirts', 'Footwear'
   ];
@@ -20,7 +20,7 @@ const ProductFilter = ({ filters, onChange, onClear }) => {
     onChange({ [filterType]: value });
   };
 
-  const hasActiveFilters = filters.gender || filters.clothingType || filters.size || filters.priceRange || filters.sort !== 'newest';
+  const hasActiveFilters = filters.gender || filters.category || filters.size || filters.priceRange || filters.sort !== 'newest';
 
   return (
     <div className="space-y-6">
@@ -64,7 +64,7 @@ const ProductFilter = ({ filters, onChange, onClear }) => {
         </div>
       </motion.div>
 
-      {/* Clothing Type filter */}
+      {/* Category filter */}
       <motion.div
         initial={{ opacity: 0, x: -10 }}
         animate={{ opacity: 1, x: 0 }}
@@ -72,32 +72,32 @@ const ProductFilter = ({ filters, onChange, onClear }) => {
       >
         <h4 className="font-semibold text-white mb-3 flex items-center">
           <span className="w-1 h-4 bg-gradient-to-b from-purple-400 to-pink-400 rounded-full mr-2"></span>
-          By Clothing Type
+          By Category
         </h4>
         <div className="space-y-1">
-          {clothingTypes.map((type, index) => (
+          {categories.map((category, index) => (
             <motion.label
-              key={type}
+              key={category}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.3, delay: 0.1 + index * 0.03 }}
               className={`flex items-center p-3 rounded-xl cursor-pointer transition-all duration-200 ${
-                filters.clothingType === type
+                filters.category === category
                   ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-400/30'
                   : 'bg-white/5 hover:bg-white/10 border border-transparent'
               }`}
             >
               <input
                 type="radio"
-                name="clothingType"
-                checked={filters.clothingType === type}
-                onChange={() => handleChange('clothingType', type)}
+                name="category"
+                checked={filters.category === category}
+                onChange={() => handleChange('category', category)}
                 className="h-4 w-4 text-purple-400 focus:ring-purple-400 border-gray-600 rounded bg-gray-800/50"
               />
               <span className={`ml-3 font-medium text-sm ${
-                filters.clothingType === type ? 'text-purple-300' : 'text-gray-300'
+                filters.category === category ? 'text-purple-300' : 'text-gray-300'
               }`}>
-                {type}
+                {category}
               </span>
             </motion.label>
           ))}
@@ -211,9 +211,9 @@ const ProductFilter = ({ filters, onChange, onClear }) => {
                 👤 {filters.gender}
               </span>
             )}
-            {filters.clothingType && (
+            {filters.category && (
               <span className="px-3 py-1 bg-purple-400/20 text-purple-300 text-xs rounded-full border border-purple-400/30">
-                👕 {filters.clothingType}
+                👕 {filters.category}
               </span>
             )}
             {filters.size && (

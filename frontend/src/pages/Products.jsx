@@ -16,13 +16,16 @@ const Products = () => {
     priceRange: '',
     size: '',
     sort: 'newest',
-    search: ''
+    search: '',
+    gender: ''
   });
 
   useEffect(() => {
     const loadProducts = async () => {
       try {
+        console.log('Loading products...');
         const data = await fetchProducts();
+        console.log('Products loaded:', data);
         setProducts(data);
         setFilteredProducts(data);
       } catch (error) {
@@ -36,6 +39,7 @@ const Products = () => {
   }, []);
 
   useEffect(() => {
+    console.log('Applying filters:', filters);
     let result = [...products];
 
     // Apply search filter
@@ -51,6 +55,11 @@ const Products = () => {
     // Apply category filter
     if (filters.category) {
       result = result.filter(product => product.category === filters.category);
+    }
+
+    // Apply gender filter
+    if (filters.gender) {
+      result = result.filter(product => product.gender === filters.gender);
     }
 
     // Apply price range filter
@@ -86,6 +95,7 @@ const Products = () => {
         break;
     }
 
+    console.log('Filtered results:', result.length);
     setFilteredProducts(result);
   }, [filters, products]);
 
@@ -99,13 +109,14 @@ const Products = () => {
       priceRange: '',
       size: '',
       sort: 'newest',
-      search: ''
+      search: '',
+      gender: ''
     });
   };
 
-  const categories = [
-    'Hoodies', 'T-Shirts', 'Pants', 'Accessories', 'Footwear'
-  ];
+  // Get unique categories and genders from products for quick filter buttons
+  const categories = [...new Set(products.map(product => product.category))];
+  const genders = [...new Set(products.map(product => product.gender))];
 
   if (loading) {
     return (
@@ -143,7 +154,7 @@ const Products = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
           >
-            Discover cutting-edge apparel designed for campus life with innovative materials and futuristic style.
+            Discover {products.length} cutting-edge apparel items designed for campus life
           </motion.p>
         </motion.div>
 
@@ -226,24 +237,48 @@ const Products = () => {
                 />
 
                 {/* Quick Categories */}
-                <div className="mt-8">
-                  <h4 className="font-medium text-gray-300 mb-3">Shop by Category</h4>
-                  <div className="space-y-2">
-                    {categories.map(category => (
-                      <button
-                        key={category}
-                        onClick={() => handleFilterChange({ category })}
-                        className={`block w-full text-left px-3 py-2 rounded-lg transition-colors ${
-                          filters.category === category
-                            ? 'bg-cyan-400/20 text-cyan-400'
-                            : 'text-gray-400 hover:text-cyan-300 hover:bg-cyan-400/10'
-                        }`}
-                      >
-                        {category}
-                      </button>
-                    ))}
+                {categories.length > 0 && (
+                  <div className="mt-8">
+                    <h4 className="font-medium text-gray-300 mb-3">Shop by Category</h4>
+                    <div className="space-y-2">
+                      {categories.map(category => (
+                        <button
+                          key={category}
+                          onClick={() => handleFilterChange({ category })}
+                          className={`block w-full text-left px-3 py-2 rounded-lg transition-colors ${
+                            filters.category === category
+                              ? 'bg-cyan-400/20 text-cyan-400'
+                              : 'text-gray-400 hover:text-cyan-300 hover:bg-cyan-400/10'
+                          }`}
+                        >
+                          {category}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {/* Quick Genders */}
+                {genders.length > 0 && (
+                  <div className="mt-4">
+                    <h4 className="font-medium text-gray-300 mb-3">Shop by Gender</h4>
+                    <div className="space-y-2">
+                      {genders.map(gender => (
+                        <button
+                          key={gender}
+                          onClick={() => handleFilterChange({ gender })}
+                          className={`block w-full text-left px-3 py-2 rounded-lg transition-colors ${
+                            filters.gender === gender
+                              ? 'bg-cyan-400/20 text-cyan-400'
+                              : 'text-gray-400 hover:text-cyan-300 hover:bg-cyan-400/10'
+                          }`}
+                        >
+                          {gender}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </GlassCard>
             </motion.div>
           </div>
@@ -286,7 +321,7 @@ const Products = () => {
                 >
                   <GlassCard className="p-12 text-center backdrop-blur-xl">
                     <div className="w-24 h-24 bg-gradient-to-r from-cyan-400/10 to-purple-400/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                      <svg className="w-12 h-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                     </div>
