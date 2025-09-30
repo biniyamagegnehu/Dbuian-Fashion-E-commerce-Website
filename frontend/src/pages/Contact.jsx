@@ -52,10 +52,10 @@ const Contact = () => {
     },
     {
       icon: '📱',
-      title: 'WhatsApp',
+      title: 'Telegram',
       details: '+251 9XX XXX XXX',
       description: 'Chat with us directly',
-      link: 'https://wa.me/251900000000'
+      link: 'https://t.me/251900000000'
     },
     {
       icon: '🏫',
@@ -73,28 +73,6 @@ const Contact = () => {
     }
   ];
 
-  const faqs = [
-    {
-      question: "How do I place an order?",
-      answer: "Browse our products, add items to cart, and proceed to checkout. You'll need a valid university email to register."
-    },
-    {
-      question: "Where can I pick up my order?",
-      answer: "Orders can be picked up at our campus office in the Student Center, Room 205, during business hours (8:00 AM - 5:00 PM, Monday-Friday)."
-    },
-    {
-      question: "What payment methods do you accept?",
-      answer: "We currently accept cash on delivery (COD) and soon will integrate mobile banking and card payments."
-    },
-    {
-      question: "Can I return or exchange items?",
-      answer: "Yes! We offer 30-day returns for unworn items with tags attached. Exchanges are subject to availability."
-    },
-    {
-      question: "Do you offer student discounts?",
-      answer: "Absolutely! All DBU students receive automatic discounts on purchases. Make sure to register with your university email."
-    }
-  ];
 
   const socialLinks = [
     {
@@ -102,12 +80,6 @@ const Contact = () => {
       icon: '📸',
       url: 'https://instagram.com/dbuianfashion',
       handle: '@dbuianfashion'
-    },
-    {
-      name: 'Telegram',
-      icon: '📢',
-      url: 'https://t.me/dbuianfashion',
-      handle: 't.me/dbuianfashion'
     },
     {
       name: 'Facebook',
@@ -243,7 +215,7 @@ const Contact = () => {
                       </div>
                       <div>
                         <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
-                          University Email *
+                          Email *
                         </label>
                         <input
                           type="email"
@@ -253,7 +225,7 @@ const Contact = () => {
                           value={formData.email}
                           onChange={handleChange}
                           className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 text-white placeholder-gray-500"
-                          placeholder="you@dbu.edu.et"
+                          placeholder="you@gmail.com"
                         />
                       </div>
                     </div>
@@ -394,70 +366,18 @@ const Contact = () => {
                   Quick Support
                 </h3>
                 <p className="text-gray-300 mb-4">
-                  For urgent order-related issues, contact us directly via WhatsApp for the fastest response.
+                  For urgent order-related issues, contact us directly via Telegram for the fastest response.
                 </p>
                 <a
-                  href="https://wa.me/251900000000"
+                  href="https://t.me/251900000000"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center px-4 py-2 bg-green-500/20 text-green-400 rounded-lg hover:bg-green-500/30 transition-colors"
                 >
                   <span className="mr-2">💬</span>
-                  Chat on WhatsApp
+                  Chat on Telegram
                 </a>
               </GlassCard>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* FAQ Section */}
-      <section className="py-16 px-4">
-        <div className="container mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
-            viewport={{ once: true }}
-            className="text-center mb-12"
-          >
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Frequently Asked Questions</h2>
-            <p className="text-gray-400 text-lg">Quick answers to common questions</p>
-          </motion.div>
-
-          <div className="max-w-4xl mx-auto">
-            <div className="space-y-4">
-              {faqs.map((faq, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  viewport={{ once: true }}
-                >
-                  <GlassCard className="p-6 backdrop-blur-xl">
-                    <h3 className="text-lg font-semibold text-cyan-400 mb-2">Q: {faq.question}</h3>
-                    <p className="text-gray-300">A: {faq.answer}</p>
-                  </GlassCard>
-                </motion.div>
-              ))}
-            </div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.6 }}
-              viewport={{ once: true }}
-              className="text-center mt-8"
-            >
-              <p className="text-gray-400 mb-4">
-                Still have questions? Don't hesitate to contact us directly!
-              </p>
-              <Link to="/contact">
-                <AnimatedButton variant="outline" className="border-cyan-400 text-cyan-400 hover:bg-cyan-400/10">
-                  Contact Support
-                </AnimatedButton>
-              </Link>
             </motion.div>
           </div>
         </div>
