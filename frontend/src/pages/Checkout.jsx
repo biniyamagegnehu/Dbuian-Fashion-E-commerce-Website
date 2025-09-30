@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import GlassCard from '../components/ui/GlassCard';
@@ -11,6 +11,8 @@ const Checkout = () => {
   const { items, getCartTotal, clearCart } = useCart();
   const { user, isAuthenticated } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [orderDetails, setOrderDetails] = useState(null);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -54,21 +56,44 @@ const Checkout = () => {
       return;
     }
 
-    setIsProcessing(true);
-    
     // Validate form
     if (!formData.firstName || !formData.lastName || !formData.phoneNumber || !formData.blockNumber || !formData.roomDormNumber) {
       alert('Please fill in all required fields');
-      setIsProcessing(false);
       return;
     }
+
+    // Show confirmation modal instead of processing immediately
+    setShowConfirmation(true);
+  };
+
+  const handleConfirmOrder = async () => {
+    setIsProcessing(true);
+    setShowConfirmation(false);
+
+    // Generate order details
+    const orderData = {
+      orderId: `DBU-${Date.now()}`,
+      customerName: `${formData.firstName} ${formData.lastName}`,
+      deliveryLocation: `Block ${formData.blockNumber}, Room ${formData.roomDormNumber}`,
+      phone: formData.phoneNumber,
+      items: items,
+      total: getCartTotal() + 50 + (getCartTotal() * 0.15),
+      estimatedDelivery: '24-48 hours',
+      orderDate: new Date().toLocaleDateString()
+    };
+
+    setOrderDetails(orderData);
 
     // Simulate order processing
     setTimeout(() => {
       setIsProcessing(false);
       clearCart();
-      navigate('/order-success');
-    }, 2000);
+      navigate('/order-success', { state: { orderDetails: orderData } });
+    }, 3000);
+  };
+
+  const handleCancelOrder = () => {
+    setShowConfirmation(false);
   };
 
   // Show loading state while checking authentication
@@ -377,6 +402,85 @@ const Checkout = () => {
             </div>
           </div>
         </form>
+
+        {/* Order Confirmation Modal */}
+        <AnimatePresence>
+          {showConfirmation && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                transition={{ type: "spring", damping: 25 }}
+                className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border border-cyan-400/20 p-6 max-w-md w-full mx-auto"
+              >
+                <div className="text-center">
+                  {/* Icon */}
+                  <div className="w-20 h-20 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-white" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+
+                  {/* Title */}
+                  <h3 className="text-2xl font-bold text-white mb-2">
+                    Confirm Your Order
+                  </h3>
+
+                  {/* Message */}
+                  <p className="text-gray-300 mb-6">
+                    Are you sure you want to place this order? This action cannot be undone.
+                  </p>
+
+                  {/* Order Summary */}
+                  <div className="bg-gray-700/50 rounded-lg p-4 mb-6 text-left">
+                    <h4 className="text-cyan-400 font-semibold mb-3">Order Details:</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Items:</span>
+                        <span className="text-white">{items.length} products</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Delivery to:</span>
+                        <span className="text-white">Block {formData.blockNumber}, Room {formData.roomDormNumber}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Total Amount:</span>
+                        <span className="text-cyan-400 font-semibold">{formatPrice(total)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Buttons */}
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleCancelOrder}
+                      className="flex-1 px-4 py-3 bg-gray-700 text-gray-300 rounded-xl hover:bg-gray-600 transition-colors font-medium"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleConfirmOrder}
+                      className="flex-1 px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:from-green-600 hover:to-emerald-600 transition-all font-medium shadow-lg shadow-green-500/25"
+                    >
+                      Yes, Place Order
+                    </button>
+                  </div>
+
+                  {/* Note */}
+                  <p className="text-xs text-gray-500 mt-4">
+                    You'll be redirected to the order success page after confirmation
+                  </p>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
