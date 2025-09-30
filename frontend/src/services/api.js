@@ -349,6 +349,8 @@ export const submitContactForm = async (contactData) => {
   });
 };
 
+
+
 // Unified API object for easy imports
 export const api = {
   products: {
