@@ -140,6 +140,72 @@ exports.createProduct = async (req, res, next) => {
   }
 };
 
+// @desc    Upload image
+// @route   POST /api/upload
+// @access  Private/Admin
+exports.uploadImage = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return next(new ErrorResponse('Please upload an image file', 400));
+    }
+
+    // Upload to Cloudinary
+    const result = await new Promise((resolve, reject) => {
+      cloudinary.uploader.upload_stream(
+        {
+          resource_type: 'image',
+          folder: 'dbuian_fashion/products',
+          transformation: [
+            { width: 800, height: 800, crop: 'limit' },
+            { quality: 'auto' },
+            { format: 'webp' }
+          ]
+        },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      ).end(req.file.buffer);
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        image: {
+          url: result.secure_url,
+          public_id: result.public_id
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Upload error:', error);
+    next(new ErrorResponse('Image upload failed', 500));
+  }
+};
+
+// @desc    Delete image
+// @route   DELETE /api/upload/:publicId
+// @access  Private/Admin
+exports.deleteImage = async (req, res, next) => {
+  try {
+    const { publicId } = req.params;
+
+    const result = await cloudinary.uploader.destroy(publicId);
+
+    if (result.result !== 'ok') {
+      return next(new ErrorResponse('Image not found', 404));
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Image deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete error:', error);
+    next(new ErrorResponse('Image deletion failed', 500));
+  }
+};
+
 // @desc    Update product
 // @route   PUT /api/products/:id
 // @access  Private/Admin

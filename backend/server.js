@@ -29,10 +29,13 @@ const connectDB = async () => {
 
 // Import and use routes
 app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/admin/auth', require('./routes/adminAuthRoutes')); 
 app.use('/api/products', require('./routes/productRoutes'));
 app.use('/api/orders', require('./routes/orderRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/reviews', require('./routes/reviewRoutes'));
+app.use('/api/upload', require('./routes/uploadRoutes'));
+
 
 // Simple health check
 app.get('/api/health', (req, res) => {

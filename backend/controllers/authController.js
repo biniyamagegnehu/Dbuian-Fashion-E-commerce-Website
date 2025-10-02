@@ -167,3 +167,77 @@ exports.updatePassword = async (req, res, next) => {
     next(error);
   }
 };
+
+// @desc    Admin login
+// @route   POST /api/admin/auth/login
+// @access  Public
+exports.adminLogin = async (req, res, next) => {
+  try {
+    const { email, password } = req.body;
+
+    // Validate email & password
+    if (!email || !password) {
+      return next(new ErrorResponse('Please provide email and password', 400));
+    }
+
+    // Check for user (include password for comparison)
+    const user = await User.findOne({ email }).select('+password');
+
+    if (!user) {
+      return next(new ErrorResponse('Invalid credentials', 401));
+    }
+
+    // Check if password matches
+    const isMatch = await user.matchPassword(password);
+
+    if (!isMatch) {
+      return next(new ErrorResponse('Invalid credentials', 401));
+    }
+
+    // Check if user is admin
+    if (user.role !== 'admin') {
+      return next(new ErrorResponse('Access denied. Admin privileges required.', 403));
+    }
+
+    // Generate token
+    const token = user.getSignedJwtToken();
+
+    res.status(200).json({
+      success: true,
+      message: 'Admin login successful',
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        studentId: user.studentId,
+        university: user.university,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get current admin user
+// @route   GET /api/admin/auth/me
+// @access  Private/Admin
+exports.getAdminMe = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user.id);
+
+    // Verify user is still an admin
+    if (user.role !== 'admin') {
+      return next(new ErrorResponse('Admin access revoked', 403));
+    }
+
+    res.status(200).json({
+      success: true,
+      user
+    });
+  } catch (error) {
+    next(error);
+  }
+};
