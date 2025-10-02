@@ -6,7 +6,7 @@ require('dotenv').config();
 
 const createAdminUser = async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI);
+    await mongoose.connect('mongodb+srv://biniyamagegnehu_db:%40biniyamnohaminmd@dbuian-fashion-cluster.4r8bx9f.mongodb.net/dbuian_fashion?retryWrites=true&w=majority&appName=dbuian-fashion-cluster');
     
     // Check if admin already exists
     const existingAdmin = await User.findOne({ email: 'admin@dbuian.com' });
@@ -18,7 +18,7 @@ const createAdminUser = async () => {
     // Create admin user
     const adminUser = new User({
       name: 'Admin User',
-      email: 'admin@dbuian.com',
+      email: 'admin1@dbuian.com',
       password: 'admin123', // This will be hashed by the pre-save hook
       role: 'admin',
       university: 'Debre Berhan University',
@@ -27,7 +27,7 @@ const createAdminUser = async () => {
 
     await adminUser.save();
     console.log('✅ Admin user created successfully');
-    console.log('Email: admin@dbuian.com');
+    console.log('Email: admin1@dbuian.com');
     console.log('Password: admin123');
     
   } catch (error) {
