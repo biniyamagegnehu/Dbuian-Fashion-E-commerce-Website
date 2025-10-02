@@ -1,9 +1,21 @@
-import { useState } from 'react';
-import { ShoppingCart, Filter, Clock, CheckCircle, Truck, Package, Search } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ShoppingCart, Filter, Clock, CheckCircle, Truck, Package, Search, Download } from 'lucide-react';
+import { ordersAPI } from '../services/api';
+import LoadingSpinner from '../components/UI/LoadingSpinner';
 
 const Orders = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [orders, setOrders] = useState([]);
+  const [filteredOrders, setFilteredOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    total: 0,
+    pending: 0,
+    processing: 0,
+    shipped: 0,
+    delivered: 0
+  });
 
   const statusOptions = [
     { value: 'all', label: 'All Orders', icon: Package, color: 'gray' },
@@ -12,6 +24,101 @@ const Orders = () => {
     { value: 'shipped', label: 'Shipped', icon: Truck, color: 'purple' },
     { value: 'delivered', label: 'Delivered', icon: CheckCircle, color: 'green' }
   ];
+
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  useEffect(() => {
+    filterOrders();
+    calculateStats();
+  }, [orders, searchTerm, statusFilter]);
+
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      const response = await ordersAPI.getAll();
+      setOrders(response.data.orders || []);
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filterOrders = () => {
+    let filtered = orders;
+
+    // Search filter
+    if (searchTerm) {
+      filtered = filtered.filter(order =>
+        order.orderId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.customer?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.customer?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order._id?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(order =>
+        order.orderStatus?.toLowerCase() === statusFilter.toLowerCase()
+      );
+    }
+
+    setFilteredOrders(filtered);
+  };
+
+  const calculateStats = () => {
+    const stats = {
+      total: orders.length,
+      pending: orders.filter(order => order.orderStatus === 'pending').length,
+      processing: orders.filter(order => order.orderStatus === 'processing').length,
+      shipped: orders.filter(order => order.orderStatus === 'shipped').length,
+      delivered: orders.filter(order => order.orderStatus === 'delivered').length
+    };
+    setStats(stats);
+  };
+
+  const updateOrderStatus = async (orderId, newStatus) => {
+    try {
+      await ordersAPI.updateStatus(orderId, newStatus);
+      await fetchOrders(); // Refresh orders
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      alert('Failed to update order status');
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'pending': return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
+      case 'processing': return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+      case 'shipped': return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
+      case 'delivered': return 'bg-green-500/20 text-green-400 border-green-500/30';
+      default: return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+    }
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'pending': return Clock;
+      case 'processing': return Package;
+      case 'shipped': return Truck;
+      case 'delivered': return CheckCircle;
+      default: return Package;
+    }
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
 
   const StatCard = ({ title, value, color, icon: Icon }) => (
     <div className="glass-card p-6 hover:transform hover:scale-105 transition-all duration-300 cursor-pointer group">
@@ -27,6 +134,39 @@ const Orders = () => {
     </div>
   );
 
+  const exportOrders = () => {
+    // Simple CSV export functionality
+    const headers = ['Order ID', 'Customer', 'Email', 'Total', 'Status', 'Date'];
+    const csvData = filteredOrders.map(order => [
+      order.orderId || order._id,
+      order.customer?.name || 'N/A',
+      order.customer?.email || 'N/A',
+      `ETB ${order.totalPrice}`,
+      order.orderStatus,
+      formatDate(order.createdAt)
+    ]);
+
+    const csvContent = [headers, ...csvData]
+      .map(row => row.map(field => `"${field}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `orders-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <LoadingSpinner size="lg" text="Loading orders..." />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -38,8 +178,11 @@ const Orders = () => {
           <p className="text-gray-400 mt-2">Manage customer orders and track fulfillment</p>
         </div>
         <div className="mt-4 sm:mt-0">
-          <button className="btn-primary flex items-center space-x-2">
-            <Filter className="w-4 h-4" />
+          <button 
+            onClick={exportOrders}
+            className="btn-primary flex items-center space-x-2"
+          >
+            <Download className="w-4 h-4" />
             <span>Export Orders</span>
           </button>
         </div>
@@ -49,25 +192,25 @@ const Orders = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Total Orders"
-          value="1,247"
+          value={stats.total}
           color="bg-blue-500/20 border border-blue-500/30"
           icon={ShoppingCart}
         />
         <StatCard
           title="Pending"
-          value="23"
+          value={stats.pending}
           color="bg-orange-500/20 border border-orange-500/30"
           icon={Clock}
         />
         <StatCard
           title="Processing"
-          value="15"
+          value={stats.processing}
           color="bg-purple-500/20 border border-purple-500/30"
           icon={Package}
         />
         <StatCard
           title="Delivered"
-          value="1,209"
+          value={stats.delivered}
           color="bg-green-500/20 border border-green-500/30"
           icon={CheckCircle}
         />
@@ -107,43 +250,101 @@ const Orders = () => {
             })}
           </div>
         </div>
+
+        {/* Active Filters Display */}
+        <div className="flex flex-wrap gap-2 mt-4">
+          {statusFilter !== 'all' && (
+            <span className="px-3 py-1 bg-cyan-500/20 text-cyan-400 rounded-full text-sm">
+              Status: {statusOptions.find(s => s.value === statusFilter)?.label}
+            </span>
+          )}
+          {searchTerm && (
+            <span className="px-3 py-1 bg-orange-500/20 text-orange-400 rounded-full text-sm">
+              Search: "{searchTerm}"
+            </span>
+          )}
+          <span className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full text-sm">
+            Showing {filteredOrders.length} of {orders.length} orders
+          </span>
+        </div>
       </div>
 
-      {/* Orders Content */}
-      <div className="glass-card p-8">
-        <div className="text-center py-12">
-          <ShoppingCart className="w-16 h-16 text-gray-500 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-white mb-2">Advanced Orders System</h3>
-          <p className="text-gray-400 mb-6 max-w-2xl mx-auto">
-            Our comprehensive order management system is under development. You'll be able to process orders, 
-            update statuses, manage returns, and track shipments all in one place.
-          </p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            <div className="glass-card p-4 text-center">
-              <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center mx-auto mb-3">
-                <CheckCircle className="w-6 h-6 text-green-400" />
-              </div>
-              <h4 className="font-semibold text-white mb-2">Order Processing</h4>
-              <p className="text-gray-400 text-sm">Streamlined order fulfillment workflow</p>
+      {/* Orders Table */}
+      <div className="glass-card p-6">
+        <div className="overflow-x-auto">
+          {filteredOrders.length > 0 ? (
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-white/10">
+                  <th className="text-left py-4 px-4 text-gray-400 font-medium">Order ID</th>
+                  <th className="text-left py-4 px-4 text-gray-400 font-medium">Customer</th>
+                  <th className="text-left py-4 px-4 text-gray-400 font-medium">Items</th>
+                  <th className="text-left py-4 px-4 text-gray-400 font-medium">Total</th>
+                  <th className="text-left py-4 px-4 text-gray-400 font-medium">Status</th>
+                  <th className="text-left py-4 px-4 text-gray-400 font-medium">Date</th>
+                  <th className="text-left py-4 px-4 text-gray-400 font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredOrders.map((order) => {
+                  const StatusIcon = getStatusIcon(order.orderStatus);
+                  return (
+                    <tr key={order._id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                      <td className="py-4 px-4">
+                        <div className="text-white font-medium">
+                          {order.orderId || order._id.slice(-8)}
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="text-white">{order.customer?.name || 'N/A'}</div>
+                        <div className="text-gray-400 text-sm">{order.customer?.email || 'N/A'}</div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="text-white">{order.items?.length || 0} items</div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="text-cyan-400 font-semibold">ETB {order.totalPrice}</div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className={`inline-flex items-center space-x-2 px-3 py-1 rounded-full border ${getStatusColor(order.orderStatus)}`}>
+                          <StatusIcon className="w-3 h-3" />
+                          <span className="text-sm font-medium capitalize">{order.orderStatus}</span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="text-gray-400 text-sm">
+                          {formatDate(order.createdAt || order.orderDate)}
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <select
+                          value={order.orderStatus}
+                          onChange={(e) => updateOrderStatus(order._id, e.target.value)}
+                          className="bg-white/5 border border-white/10 rounded-lg px-3 py-1 text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                        >
+                          <option value="pending">Pending</option>
+                          <option value="processing">Processing</option>
+                          <option value="shipped">Shipped</option>
+                          <option value="delivered">Delivered</option>
+                        </select>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          ) : (
+            <div className="text-center py-12">
+              <ShoppingCart className="w-16 h-16 text-gray-500 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-white mb-2">No Orders Found</h3>
+              <p className="text-gray-400 mb-6">
+                {orders.length === 0 
+                  ? "No orders have been placed yet."
+                  : "No orders match your current filters. Try adjusting your search criteria."
+                }
+              </p>
             </div>
-            
-            <div className="glass-card p-4 text-center">
-              <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center mx-auto mb-3">
-                <Truck className="w-6 h-6 text-blue-400" />
-              </div>
-              <h4 className="font-semibold text-white mb-2">Shipment Tracking</h4>
-              <p className="text-gray-400 text-sm">Real-time delivery status updates</p>
-            </div>
-            
-            <div className="glass-card p-4 text-center">
-              <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center mx-auto mb-3">
-                <Filter className="w-6 h-6 text-purple-400" />
-              </div>
-              <h4 className="font-semibold text-white mb-2">Smart Analytics</h4>
-              <p className="text-gray-400 text-sm">Order patterns and customer insights</p>
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
