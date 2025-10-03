@@ -9,6 +9,9 @@ const ProductCard = ({ product, layout = 'grid' }) => {
     return `${price} Birr`;
   };
 
+  // Use _id for MongoDB or id for local data
+  const productId = product._id || product.id;
+
   if (layout === 'list') {
     return (
       <motion.div
@@ -19,7 +22,7 @@ const ProductCard = ({ product, layout = 'grid' }) => {
         className="w-full"
       >
         <GlassCard className="backdrop-blur-xl border border-white/10 hover:border-cyan-500/30 transition-all duration-300">
-          <Link to={`/product/${product.id}`}>
+          <Link to={`/product/${productId}`}>
             <div className="flex flex-col md:flex-row gap-4">
               <div className="md:w-1/4">
                 <div className="relative overflow-hidden rounded-xl">
@@ -78,7 +81,7 @@ const ProductCard = ({ product, layout = 'grid' }) => {
       className="h-full"
     >
       <GlassCard className="h-full overflow-hidden group backdrop-blur-xl border border-white/10 hover:border-cyan-500/30 transition-all duration-300">
-        <Link to={`/product/${product.id}`}>
+        <Link to={`/product/${productId}`}>
           <div className="relative overflow-hidden">
             <img
               src={product.image}

@@ -109,20 +109,20 @@ export const productsAPI = {
     }
   },
   
-  getById: async (id) => {
-    try {
-      const response = await api.get(`/products/${id}`);
-      return {
-        data: {
-          product: response.data.product || response.data,
-          success: true
-        }
-      };
-    } catch (error) {
-      console.error('Error fetching product:', error);
-      throw error;
-    }
-  },
+getById: async (id) => {
+  try {
+    const response = await api.get(`/products/${id}`);
+    return {
+      data: {
+        product: response.data.product || response.data,
+        success: true
+      }
+    };
+  } catch (error) {
+    console.error('Error fetching product:', error);
+    throw error;
+  }
+},
   
   create: (productData) => api.post('/products', productData),
   update: (id, productData) => api.put(`/products/${id}`, productData),

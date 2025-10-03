@@ -3,69 +3,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { productsAPI, reviewsAPI, ordersAPI } from '../services/api';
+import { getImageUrl } from '../services/api';
 import ImageGallery from '../components/products/ImageGallery';
 import AnimatedButton from '../components/ui/AnimatedButton';
 import GlassCard from '../components/ui/GlassCard';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
-
-// Mock API functions - replace these with real API calls later
-const fetchProductReviews = async (productId) => {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 500));
-  
-  return [
-    {
-      id: '1',
-      productId,
-      userId: 'user1',
-      userName: 'John Doe',
-      rating: 5,
-      comment: 'Excellent quality! Fits perfectly and very comfortable. The material is premium and worth the price.',
-      createdAt: '2024-01-15'
-    },
-    {
-      id: '2',
-      productId,
-      userId: 'user2',
-      userName: 'Sarah Smith',
-      rating: 4,
-      comment: 'Great product, but the sizing runs a bit small. I would recommend ordering one size up.',
-      createdAt: '2024-01-10'
-    },
-    {
-      id: '3',
-      productId,
-      userId: 'user3',
-      userName: 'Mike Johnson',
-      rating: 5,
-      comment: 'Absolutely love this! The design is modern and the comfort is unmatched. Perfect for campus wear.',
-      createdAt: '2024-01-08'
-    }
-  ];
-};
-
-const submitReview = async (reviewData) => {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  
-  return {
-    id: Date.now().toString(),
-    ...reviewData,
-    createdAt: new Date().toISOString()
-  };
-};
-
-const checkPurchaseStatus = async (productId, userId) => {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 300));
-  
-  // For demo purposes, let's assume user has purchased some products
-  // In real app, this would check your orders database
-  const purchasedProducts = ['1', '2', '3']; // Mock purchased product IDs
-  return {
-    hasPurchased: purchasedProducts.includes(productId)
-  };
-};
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -75,7 +18,7 @@ const ProductDetail = () => {
   const [product, setProduct] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [selectedSize, setSelectedSize] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [activeImage, setActiveImage] = useState(0);
@@ -88,24 +31,7 @@ const ProductDetail = () => {
   const [hasPurchased, setHasPurchased] = useState(false);
   const [purchaseCheckLoading, setPurchaseCheckLoading] = useState(false);
 
-  // Mock product data - replace with your actual product fetching
-  const mockProduct = {
-    id: id,
-    name: "Neo University Hoodie - Men's",
-    price: 1250,
-    category: "Hoodies & Sweatshirts",
-    gender: "Men",
-    size: ["S", "M", "L", "XL", "XXL"],
-    stock: 15,
-    image: "/images/hoodie-1.jpg",
-    description: "Premium comfort hoodie with futuristic design elements perfect for campus life. Made with smart fabric technology that adapts to your body temperature.",
-    colors: ["#3a86ff", "#ff006e", "#8338ec", "#06d6a0"],
-    material: "80% Cotton, 20% Polyester",
-    care: "Machine wash cold, tumble dry low",
-    featured: true,
-    trending: true,
-    createdAt: "2024-01-15"
-  };
+  console.log('Product ID from URL:', id); // Debug log
 
   // Format price in Birr
   const formatPrice = (price) => {
@@ -119,23 +45,52 @@ const ProductDetail = () => {
     return (total / reviews.length).toFixed(1);
   };
 
-  // Load product and reviews
+  // Load product from backend
   useEffect(() => {
     const loadProductData = async () => {
+      // Check if ID is valid
+      if (!id || id === 'undefined') {
+        setError('Invalid product ID');
+        setLoading(false);
+        return;
+      }
+
       try {
-        // Simulate API call for product
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setProduct(mockProduct);
+        setLoading(true);
+        setError(null);
         
-        // Load reviews
-        const reviewsData = await fetchProductReviews(id);
-        setReviews(reviewsData);
+        console.log('Fetching product with ID:', id); // Debug log
         
-        if (mockProduct.size && mockProduct.size.length > 0) {
-          setSelectedSize(mockProduct.size[0]);
+        // Fetch product from backend API
+        const productResponse = await productsAPI.getById(id);
+        console.log('Product response:', productResponse); // Debug log
+        
+        const productData = productResponse.data?.product || productResponse.data;
+        
+        if (productData) {
+          setProduct(productData);
+          
+          // Set default size if available
+          if (productData.size && productData.size.length > 0) {
+            setSelectedSize(productData.size[0]);
+          }
+          
+          // Load reviews for this product
+          try {
+            const reviewsResponse = await reviewsAPI.getByProduct(id);
+            setReviews(reviewsResponse.data?.reviews || []);
+          } catch (reviewError) {
+            console.error('Error loading reviews:', reviewError);
+            setReviews([]);
+          }
+        } else {
+          setError('Product not found');
+          setProduct(null);
         }
       } catch (error) {
         console.error('Error loading product:', error);
+        setError(error.message || 'Failed to load product');
+        setProduct(null);
       } finally {
         setLoading(false);
       }
@@ -147,27 +102,44 @@ const ProductDetail = () => {
   // Check if user has purchased this product
   useEffect(() => {
     const checkUserPurchase = async () => {
-      if (isAuthenticated && user) {
+      if (isAuthenticated && user && product) {
         setPurchaseCheckLoading(true);
         try {
-          const purchaseStatus = await checkPurchaseStatus(id, user.id);
-          setHasPurchased(purchaseStatus.hasPurchased);
+          // Get user's orders from backend
+          const ordersResponse = await ordersAPI.getUserOrders();
+          const userOrders = ordersResponse.data?.orders || [];
+          
+          // Check if any delivered order contains this product
+          const hasPurchasedProduct = userOrders.some(order => 
+            order.orderStatus === 'delivered' && 
+            order.items.some(item => {
+              const itemProductId = item.product?._id || item.product;
+              return itemProductId === product._id || itemProductId === product.id;
+            })
+          );
+          
+          setHasPurchased(hasPurchasedProduct);
         } catch (error) {
           console.error('Error checking purchase status:', error);
+          setHasPurchased(false);
         } finally {
           setPurchaseCheckLoading(false);
         }
       }
     };
 
-    checkUserPurchase();
-  }, [id, isAuthenticated, user]);
+    if (product) {
+      checkUserPurchase();
+    }
+  }, [id, isAuthenticated, user, product]);
 
   const handleAddToCart = () => {
     if (!selectedSize) {
       alert('Please select a size');
       return;
     }
+
+    if (!product) return;
 
     addToCart(product, selectedSize, quantity);
     navigate('/cart');
@@ -182,7 +154,7 @@ const ProductDetail = () => {
       return;
     }
 
-    if (!hasPurchased) {
+    if (!hasPurchased && !purchaseCheckLoading) {
       alert('You need to purchase this product before leaving a review');
       return;
     }
@@ -199,21 +171,26 @@ const ProductDetail = () => {
 
     setReviewSubmitting(true);
     try {
-      const newReview = await submitReview({
+      // Submit review to backend
+      const reviewData = {
         productId: id,
         rating: reviewRating,
-        comment: reviewComment,
-        userId: user.id,
-        userName: user.name
-      });
+        comment: reviewComment
+      };
 
+      const response = await reviewsAPI.create(reviewData);
+      const newReview = response.data?.review;
+
+      // Add new review to the list
       setReviews(prev => [newReview, ...prev]);
       setReviewRating(0);
       setReviewComment('');
       setShowReviewForm(false);
+      
+      alert('Review submitted successfully!');
     } catch (error) {
       console.error('Error submitting review:', error);
-      alert('Error submitting review. Please try again.');
+      alert(error.message || 'Error submitting review. Please try again.');
     } finally {
       setReviewSubmitting(false);
     }
@@ -264,6 +241,35 @@ const ProductDetail = () => {
 
   const requirementsMessage = getReviewRequirementsMessage();
 
+  // Show error state
+  if (error && !loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 pt-20">
+        <div className="container mx-auto px-4 py-8 text-center">
+          <GlassCard className="p-8 max-w-md mx-auto">
+            <h2 className="text-2xl font-bold text-gray-300 mb-4">Error Loading Product</h2>
+            <p className="text-gray-400 mb-4">{error}</p>
+            <p className="text-gray-400 mb-4">Product ID: {id || 'Not provided'}</p>
+            <div className="flex gap-4 justify-center">
+              <button 
+                onClick={() => navigate(-1)}
+                className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+              >
+                Go Back
+              </button>
+              <button 
+                onClick={() => navigate('/products')}
+                className="px-4 py-2 bg-cyan-500 text-white rounded hover:bg-cyan-600 transition-colors"
+              >
+                Browse Products
+              </button>
+            </div>
+          </GlassCard>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 pt-20">
@@ -282,6 +288,7 @@ const ProductDetail = () => {
         <div className="container mx-auto px-4 py-8 text-center">
           <GlassCard className="p-8 max-w-md mx-auto">
             <h2 className="text-2xl font-bold text-gray-300 mb-4">Product not found</h2>
+            <p className="text-gray-400 mb-4">The product you're looking for doesn't exist.</p>
             <button 
               onClick={() => navigate('/products')}
               className="text-cyan-400 hover:text-cyan-300 transition-colors"
@@ -295,6 +302,11 @@ const ProductDetail = () => {
   }
 
   const averageRating = calculateAverageRating();
+  
+  // Prepare images for gallery - use backend image structure
+  const productImages = product.images && product.images.length > 0 
+    ? product.images.map(img => getImageUrl(img.url))
+    : [getImageUrl(product.image) || '/images/placeholder.jpg'];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 pt-20">
@@ -317,7 +329,7 @@ const ProductDetail = () => {
             transition={{ duration: 0.6 }}
           >
             <ImageGallery 
-              images={[product.image, ...(product.extraImages || [])]} 
+              images={productImages}
               activeIndex={activeImage}
               onSelect={setActiveImage}
             />
@@ -350,9 +362,13 @@ const ProductDetail = () => {
               {/* Rating Summary */}
               <div className="flex items-center mb-4">
                 <div className="flex items-center">
-                  {renderStarRating(averageRating)}
-                  <span className="ml-2 text-cyan-400 font-semibold">{averageRating}</span>
-                  <span className="ml-2 text-gray-400">({reviews.length} reviews)</span>
+                  {renderStarRating(product.averageRating || averageRating)}
+                  <span className="ml-2 text-cyan-400 font-semibold">
+                    {product.averageRating || averageRating}
+                  </span>
+                  <span className="ml-2 text-gray-400">
+                    ({product.numReviews || reviews.length} reviews)
+                  </span>
                 </div>
               </div>
 
@@ -362,7 +378,7 @@ const ProductDetail = () => {
               <div className="mb-6">
                 <h3 className="font-medium text-white mb-3">Select Size</h3>
                 <div className="flex flex-wrap gap-2">
-                  {product.size.map(size => (
+                  {product.size && product.size.map(size => (
                     <motion.button
                       key={size}
                       onClick={() => setSelectedSize(size)}
@@ -430,132 +446,31 @@ const ProductDetail = () => {
                   </div>
                   <div>
                     <span className="text-gray-400">Material:</span>
-                    <p className="text-white">{product.material}</p>
+                    <p className="text-white">{product.material || 'Not specified'}</p>
                   </div>
                   <div>
                     <span className="text-gray-400">Care:</span>
-                    <p className="text-white">{product.care}</p>
+                    <p className="text-white">{product.care || 'Not specified'}</p>
                   </div>
                   <div>
                     <span className="text-gray-400">Available Sizes:</span>
-                    <p className="text-white">{product.size.join(', ')}</p>
+                    <p className="text-white">{product.size ? product.size.join(', ') : 'Not specified'}</p>
                   </div>
                   <div>
                     <span className="text-gray-400">SKU:</span>
-                    <p className="text-white">DB-{product.id}</p>
+                    <p className="text-white">DB-{product._id || product.id}</p>
                   </div>
                 </div>
               </div>
             </GlassCard>
-
-            {/* Reviews Section */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.4 }}
-              className="mt-8"
-            >
-              <GlassCard className="p-6 backdrop-blur-xl">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-2xl font-bold text-white">Customer Reviews</h2>
-                  <button
-                    onClick={() => {
-                      if (!isAuthenticated) {
-                        navigate('/login');
-                        return;
-                      }
-                      if (!hasPurchased && !purchaseCheckLoading) {
-                        alert('You need to purchase this product before leaving a review');
-                        return;
-                      }
-                      setShowReviewForm(!showReviewForm);
-                    }}
-                    className="px-4 py-2 bg-cyan-400/10 text-cyan-400 rounded-lg hover:bg-cyan-400/20 transition-colors border border-cyan-400/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={purchaseCheckLoading}
-                  >
-                    {purchaseCheckLoading ? 'Checking...' : 'Write a Review'}
-                  </button>
-                </div>
-
-                {/* Review Requirements Message */}
-                {requirementsMessage && (
-                  <div className={`p-4 rounded-lg mb-6 ${
-                    requirementsMessage.type === 'info' 
-                      ? 'bg-blue-400/10 border border-blue-400/20 text-blue-400'
-                      : 'bg-yellow-400/10 border border-yellow-400/20 text-yellow-400'
-                  }`}>
-                    {requirementsMessage.message}
-                  </div>
-                )}
-
-                {/* Review Form */}
-                {showReviewForm && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    className="mb-6 p-4 bg-gray-800/50 rounded-lg border border-cyan-400/20"
-                  >
-                    <h3 className="text-lg font-semibold text-white mb-4">Write Your Review</h3>
-                    <form onSubmit={handleReviewSubmit}>
-                      <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-300 mb-2">
-                          Your Rating *
-                        </label>
-                        {renderStarRating(reviewRating, true, setReviewRating)}
-                        {reviewRating === 0 && (
-                          <p className="text-red-400 text-sm mt-1">Please select a rating</p>
-                        )}
-                      </div>
-                      <div className="mb-4">
-                        <label htmlFor="reviewComment" className="block text-sm font-medium text-gray-300 mb-2">
-                          Your Review *
-                        </label>
-                        <textarea
-                          id="reviewComment"
-                          value={reviewComment}
-                          onChange={(e) => setReviewComment(e.target.value)}
-                          rows="4"
-                          className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 text-white placeholder-gray-400"
-                          placeholder="Share your experience with this product..."
-                          required
-                        />
-                      </div>
-                      <div className="flex gap-2">
-                        <AnimatedButton
-                          type="submit"
-                          className="bg-gradient-to-r from-cyan-500 to-blue-500 disabled:opacity-50"
-                          disabled={reviewSubmitting || reviewRating === 0 || !reviewComment.trim()}
-                        >
-                          {reviewSubmitting ? (
-                            <div className="flex items-center">
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                              Submitting...
-                            </div>
-                          ) : (
-                            'Submit Review'
-                          )}
-                        </AnimatedButton>
-                        <button
-                          type="button"
-                          onClick={() => setShowReviewForm(false)}
-                          className="px-4 py-2 bg-gray-600/50 text-gray-300 rounded-lg hover:bg-gray-600/70 transition-colors"
-                          disabled={reviewSubmitting}
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </form>
-                  </motion.div>
-                )}
-
-                {/* Reviews List */}
+{/* Reviews List */}
                 <div className="space-y-4">
                   {reviews.length === 0 ? (
                     <p className="text-gray-400 text-center py-8">No reviews yet. Be the first to review this product!</p>
                   ) : (
                     reviews.map((review) => (
                       <motion.div
-                        key={review.id}
+                        key={review._id || review.id}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         className="p-4 bg-gray-800/30 rounded-lg border border-gray-700/50"
@@ -563,9 +478,11 @@ const ProductDetail = () => {
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center">
                             <div className="w-8 h-8 bg-gradient-to-r from-cyan-400 to-purple-500 rounded-full flex items-center justify-center text-white text-sm font-bold mr-3">
-                              {review.userName.charAt(0)}
+                              {review.userName ? review.userName.charAt(0) : 'U'}
                             </div>
-                            <span className="text-white font-medium">{review.userName}</span>
+                            <span className="text-white font-medium">
+                              {review.userName || 'Anonymous User'}
+                            </span>
                           </div>
                           <div className="flex items-center">
                             {renderStarRating(review.rating)}
@@ -579,8 +496,6 @@ const ProductDetail = () => {
                     ))
                   )}
                 </div>
-              </GlassCard>
-            </motion.div>
           </motion.div>
         </div>
       </div>
