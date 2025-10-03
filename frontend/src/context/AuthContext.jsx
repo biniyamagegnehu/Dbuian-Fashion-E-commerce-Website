@@ -1,26 +1,44 @@
-import React, { createContext, useContext, useReducer } from 'react';
+// src/context/AuthContext.jsx
+import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import { authAPI, adminAuthAPI } from '../services/api';
 
 const AuthContext = createContext();
 
 const authReducer = (state, action) => {
   switch (action.type) {
-    case 'LOGIN':
+    case 'LOGIN_START':
+      return { ...state, isLoading: true, error: null };
+    case 'LOGIN_SUCCESS':
       return {
         ...state,
-        user: action.payload,
-        isAuthenticated: true
+        user: action.payload.user,
+        token: action.payload.token,
+        isAuthenticated: true,
+        isLoading: false,
+        error: null
+      };
+    case 'LOGIN_FAILURE':
+      return {
+        ...state,
+        user: null,
+        token: null,
+        isAuthenticated: false,
+        isLoading: false,
+        error: action.payload
       };
     case 'LOGOUT':
       return {
         ...state,
         user: null,
-        isAuthenticated: false
+        token: null,
+        isAuthenticated: false,
+        isLoading: false,
+        error: null
       };
+    case 'CLEAR_ERROR':
+      return { ...state, error: null };
     case 'SET_LOADING':
-      return {
-        ...state,
-        isLoading: action.payload
-      };
+      return { ...state, isLoading: action.payload };
     default:
       return state;
   }
@@ -28,81 +46,132 @@ const authReducer = (state, action) => {
 
 const initialState = {
   user: null,
+  token: null,
   isAuthenticated: false,
-  isLoading: false
+  isLoading: false,
+  error: null
 };
 
 export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
-  const login = async (email, password) => {
-    dispatch({ type: 'SET_LOADING', payload: true });
+  // Check if user is logged in on app load
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const user = localStorage.getItem('user');
     
-    // Simulate API call - Only customer login now
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        // Mock authentication - All users are customers
-        if ((email === 'student@dbuian.com' && password === 'student123') || 
-            (email === 'customer@dbuian.com' && password === 'customer123')) {
-          const user = { 
-            id: '2', 
-            name: 'Customer User', 
-            email: email,
-            role: 'customer', // All users are customers now
-            university: 'Dbuian University'
-          };
-          dispatch({ type: 'LOGIN', payload: user });
-          localStorage.setItem('user', JSON.stringify(user));
-          resolve(user);
-        } else {
-          reject(new Error('Invalid credentials'));
-        }
-        dispatch({ type: 'SET_LOADING', payload: false });
-      }, 1000);
-    });
+    if (token && user) {
+      dispatch({
+        type: 'LOGIN_SUCCESS',
+        payload: { user: JSON.parse(user), token }
+      });
+    }
+  }, []);
+
+  const login = async (email, password) => {
+    dispatch({ type: 'LOGIN_START' });
+    
+    try {
+      const response = await authAPI.login({ email, password });
+      const { user, token, message } = response.data;
+
+      // Store in localStorage
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+
+      dispatch({
+        type: 'LOGIN_SUCCESS',
+        payload: { user, token }
+      });
+
+      return { user, message };
+    } catch (error) {
+      const errorMessage = error.message || 'Login failed';
+      dispatch({
+        type: 'LOGIN_FAILURE',
+        payload: errorMessage
+      });
+      throw new Error(errorMessage);
+    }
   };
 
-  const logout = () => {
-    dispatch({ type: 'LOGOUT' });
-    localStorage.removeItem('user');
+  const adminLogin = async (email, password) => {
+    dispatch({ type: 'LOGIN_START' });
+    
+    try {
+      const response = await adminAuthAPI.login({ email, password });
+      const { user, token, message } = response.data;
+
+      // Store in localStorage
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+
+      dispatch({
+        type: 'LOGIN_SUCCESS',
+        payload: { user, token }
+      });
+
+      return { user, message };
+    } catch (error) {
+      const errorMessage = error.message || 'Admin login failed';
+      dispatch({
+        type: 'LOGIN_FAILURE',
+        payload: errorMessage
+      });
+      throw new Error(errorMessage);
+    }
   };
 
   const register = async (userData) => {
-    dispatch({ type: 'SET_LOADING', payload: true });
+    dispatch({ type: 'LOGIN_START' });
     
-    // Simulate API call - All new registrations are customers
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const user = { 
-          id: Date.now().toString(), 
-          ...userData,
-          role: 'customer' // Always customer role
-        };
-        dispatch({ type: 'LOGIN', payload: user });
-        localStorage.setItem('user', JSON.stringify(user));
-        dispatch({ type: 'SET_LOADING', payload: false });
-        resolve(user);
-      }, 1000);
-    });
+    try {
+      const response = await authAPI.register(userData);
+      const { user, token, message } = response.data;
+
+      // Store in localStorage
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+
+      dispatch({
+        type: 'LOGIN_SUCCESS',
+        payload: { user, token }
+      });
+
+      return { user, message };
+    } catch (error) {
+      const errorMessage = error.message || 'Registration failed';
+      dispatch({
+        type: 'LOGIN_FAILURE',
+        payload: errorMessage
+      });
+      throw new Error(errorMessage);
+    }
   };
 
-  // Check if user is logged in on app load
-  React.useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('user'));
-    if (user) {
-      dispatch({ type: 'LOGIN', payload: user });
-    }
-  }, []);
+  const logout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    dispatch({ type: 'LOGOUT' });
+  };
+
+  const clearError = () => {
+    dispatch({ type: 'CLEAR_ERROR' });
+  };
 
   return (
     <AuthContext.Provider
       value={{
         user: state.user,
+        token: state.token,
         isAuthenticated: state.isAuthenticated,
         isLoading: state.isLoading,
+        error: state.error,
         login,
+        adminLogin,
+        register,
         logout,
-        register
+        clearError
       }}
     >
       {children}

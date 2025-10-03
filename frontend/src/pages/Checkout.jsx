@@ -5,6 +5,7 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import GlassCard from '../components/ui/GlassCard';
 import AnimatedButton from '../components/ui/AnimatedButton';
+import { ordersAPI } from '../services/api';
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -66,31 +67,48 @@ const Checkout = () => {
     setShowConfirmation(true);
   };
 
-  const handleConfirmOrder = async () => {
-    setIsProcessing(true);
-    setShowConfirmation(false);
+// In your Checkout.jsx, update the order submission:
+const handleConfirmOrder = async () => {
+  setIsProcessing(true);
+  setShowConfirmation(false);
 
-    // Generate order details
+  try {
     const orderData = {
-      orderId: `DBU-${Date.now()}`,
-      customerName: `${formData.firstName} ${formData.lastName}`,
-      deliveryLocation: `Block ${formData.blockNumber}, Room ${formData.roomDormNumber}`,
-      phone: formData.phoneNumber,
-      items: items,
-      total: getCartTotal() + 50 + (getCartTotal() * 0.15),
-      estimatedDelivery: '24-48 hours',
-      orderDate: new Date().toLocaleDateString()
+      items: items.map(item => ({
+        product: item.id, // Product ID
+        size: item.size,
+        quantity: item.quantity
+      })),
+      shippingInfo: {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phoneNumber: formData.phoneNumber,
+        blockNumber: formData.blockNumber,
+        roomDormNumber: formData.roomDormNumber
+      },
+      paymentMethod: 'cash_on_delivery'
     };
 
-    setOrderDetails(orderData);
+    const response = await ordersAPI.create(orderData);
+    const order = response.data.order;
 
-    // Simulate order processing
-    setTimeout(() => {
-      setIsProcessing(false);
-      clearCart();
-      navigate('/order-success', { state: { orderDetails: orderData } });
-    }, 3000);
-  };
+    // Clear cart and show success
+    clearCart();
+    
+    // Navigate to order success page
+    navigate('/order-success', { 
+      state: { 
+        orderId: order.orderId,
+        orderDetails: order
+      } 
+    });
+  } catch (error) {
+    console.error('Error creating order:', error);
+    alert(error.response?.data?.message || 'Failed to create order');
+  } finally {
+    setIsProcessing(false);
+  }
+};
 
   const handleCancelOrder = () => {
     setShowConfirmation(false);

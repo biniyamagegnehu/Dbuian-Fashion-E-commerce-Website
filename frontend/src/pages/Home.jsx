@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, useMotionValue, useTransform, AnimatePresence, useScroll, useSpring } from 'framer-motion';
-import { fetchProducts } from '../services/api';
+import { productsAPI } from '../services/api';
 import ProductCard from '../components/products/ProductCard';
 import GlassCard from '../components/ui/GlassCard';
 import AnimatedButton from '../components/ui/AnimatedButton';
@@ -64,32 +64,49 @@ const Home = () => {
     };
   }, []);
 
-  useEffect(() => {
-    const loadProducts = async () => {
-      try {
-        const products = await fetchProducts();
-        
-        // Get unique categories from actual products
-        const uniqueCategories = [...new Set(products.map(product => product.category))];
-        const categoryCounts = uniqueCategories.map(category => ({
-          name: category,
-          icon: getCategoryIcon(category),
-          color: getCategoryColor(category),
-          count: products.filter(p => p.category === category).length
-        }));
-        
-        setCategories(categoryCounts);
-        setFeaturedProducts(products.filter(p => p.featured).slice(0, 4));
-        setTrendingProducts(products.filter(p => p.trending).slice(0, 4));
-      } catch (error) {
-        console.error('Error loading products:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+// In your Home.jsx, update the useEffect for loading products:
+useEffect(() => {
+  const loadProducts = async () => {
+    try {
+      setLoading(true);
+      
+      // Load featured products
+      const featuredResponse = await productsAPI.getFeatured();
+      const featuredProducts = featuredResponse.data.products || featuredResponse.data;
+      
+      // Load trending products
+      const trendingResponse = await productsAPI.getTrending();
+      const trendingProducts = trendingResponse.data.products || trendingResponse.data;
+      
+      // Load all products for categories
+      const allProductsResponse = await productsAPI.getAll({ limit: 100 });
+      const allProducts = allProductsResponse.data.products || allProductsResponse.data;
+      
+      // Get unique categories from actual products
+      const uniqueCategories = [...new Set(allProducts.map(product => product.category))];
+      const categoryCounts = uniqueCategories.map(category => ({
+        name: category,
+        icon: getCategoryIcon(category),
+        color: getCategoryColor(category),
+        count: allProducts.filter(p => p.category === category).length
+      }));
+      
+      setCategories(categoryCounts);
+      setFeaturedProducts(featuredProducts.slice(0, 4));
+      setTrendingProducts(trendingProducts.slice(0, 4));
+    } catch (error) {
+      console.error('Error loading products:', error);
+      // Fallback to empty arrays
+      setFeaturedProducts([]);
+      setTrendingProducts([]);
+      setCategories([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    loadProducts();
-  }, []);
+  loadProducts();
+}, []);
 
   const getCategoryIcon = (category) => {
     const icons = {

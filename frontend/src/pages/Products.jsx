@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { fetchProducts } from '../services/api';
+import { productsAPI } from '../services/api';
 import ProductCard from '../components/products/ProductCard';
 import ProductFilter from '../components/products/ProductFilter';
 import GlassCard from '../components/ui/GlassCard';
@@ -20,23 +20,31 @@ const Products = () => {
     gender: ''
   });
 
-  useEffect(() => {
-    const loadProducts = async () => {
-      try {
-        console.log('Loading products...');
-        const data = await fetchProducts();
-        console.log('Products loaded:', data);
-        setProducts(data);
-        setFilteredProducts(data);
-      } catch (error) {
-        console.error('Error loading products:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+ // In your Products.jsx, update the data fetching:
+useEffect(() => {
+  const loadProducts = async () => {
+    try {
+      setLoading(true);
+      console.log('Loading products from API with filters:', filters);
+      
+      const response = await productsAPI.getAll(filters);
+      const products = response.data.products || response.data;
+      
+      console.log('Products loaded from API:', products.length);
+      setProducts(products);
+      setFilteredProducts(products);
+    } catch (error) {
+      console.error('Error loading products from API:', error);
+      // Fallback to empty array
+      setProducts([]);
+      setFilteredProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    loadProducts();
-  }, []);
+  loadProducts();
+}, [filters]);
 
   useEffect(() => {
     console.log('Applying filters:', filters);
