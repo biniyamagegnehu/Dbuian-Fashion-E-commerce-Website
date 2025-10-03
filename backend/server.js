@@ -35,7 +35,7 @@ app.use('/api/orders', require('./routes/orderRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/reviews', require('./routes/reviewRoutes'));
 app.use('/api/upload', require('./routes/uploadRoutes'));
-
+app.use('/api/cart', require('./routes/cartRoutes')); 
 
 // Simple health check
 app.get('/api/health', (req, res) => {

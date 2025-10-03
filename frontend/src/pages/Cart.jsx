@@ -1,22 +1,113 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '../context/CartContext';
 import GlassCard from '../components/ui/GlassCard';
 import AnimatedButton from '../components/ui/AnimatedButton';
+import LoadingSpinner from '../components/ui/LoadingSpinner';
 
 const Cart = () => {
-  const { items, removeFromCart, updateQuantity, getCartTotal, clearCart } = useCart();
+  const { 
+    items, 
+    removeFromCart, 
+    updateQuantity, 
+    getCartTotal, 
+    clearCart,
+    loading,
+    error 
+  } = useCart();
+  
+  const [updatingItems, setUpdatingItems] = useState({});
+  const [notification, setNotification] = useState({ show: false, message: '', type: '' });
+
+  // Show notification
+  const showNotification = (message, type = 'error') => {
+    setNotification({ show: true, message, type });
+    setTimeout(() => setNotification({ show: false, message: '', type: '' }), 3000);
+  };
 
   // Format price in Birr
   const formatPrice = (price) => {
-    return `${price} Birr`;
+    return `${price.toFixed(2)} Birr`;
   };
 
-  const handleQuantityChange = (id, size, newQuantity) => {
+  const handleQuantityChange = async (id, size, newQuantity) => {
     if (newQuantity < 1) return;
-    updateQuantity(id, size, newQuantity);
+    
+    setUpdatingItems(prev => ({ ...prev, [`${id}-${size}`]: true }));
+    
+    const result = await updateQuantity(id, size, newQuantity);
+    
+    setUpdatingItems(prev => ({ ...prev, [`${id}-${size}`]: false }));
+    
+    if (!result.success) {
+      showNotification(result.message, 'error');
+    }
   };
+
+  const handleRemoveItem = async (id, size) => {
+    setUpdatingItems(prev => ({ ...prev, [`${id}-${size}`]: true }));
+    
+    const result = await removeFromCart(id, size);
+    
+    setUpdatingItems(prev => ({ ...prev, [`${id}-${size}`]: false }));
+    
+    if (!result.success) {
+      showNotification(result.message, 'error');
+    }
+  };
+
+  const handleClearCart = async () => {
+    if (window.confirm('Are you sure you want to clear your cart?')) {
+      const result = await clearCart();
+      if (!result.success) {
+        showNotification(result.message, 'error');
+      }
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 pt-20">
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex justify-center items-center min-h-[50vh]">
+            <LoadingSpinner size="lg" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && items.length === 0) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 pt-20">
+        <div className="container mx-auto px-4 py-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="max-w-2xl mx-auto text-center"
+          >
+            <GlassCard className="p-8 backdrop-blur-xl">
+              <div className="w-24 h-24 bg-gradient-to-r from-red-400/10 to-orange-400/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-300 mb-4">Error Loading Cart</h2>
+              <p className="text-gray-400 mb-6">{error}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white px-6 py-3 rounded-lg transition-all duration-300 transform hover:scale-105"
+              >
+                Try Again
+              </button>
+            </GlassCard>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (
@@ -55,6 +146,24 @@ const Cart = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 pt-20">
+      {/* Notification */}
+      <AnimatePresence>
+        {notification.show && (
+          <motion.div
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -50 }}
+            className={`fixed top-4 right-4 z-50 p-4 rounded-lg backdrop-blur-xl border ${
+              notification.type === 'error' 
+                ? 'bg-red-500/10 border-red-400/20 text-red-300' 
+                : 'bg-green-500/10 border-green-400/20 text-green-300'
+            }`}
+          >
+            {notification.message}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="container mx-auto px-4 py-8">
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
@@ -74,10 +183,11 @@ const Cart = () => {
                   Your Items ({items.reduce((total, item) => total + item.quantity, 0)})
                 </h2>
                 <button
-                  onClick={clearCart}
-                  className="text-sm text-red-400 hover:text-red-300 transition-colors"
+                  onClick={handleClearCart}
+                  className="text-sm text-red-400 hover:text-red-300 transition-colors disabled:opacity-50"
+                  disabled={updatingItems['clear']}
                 >
-                  Clear cart
+                  {updatingItems['clear'] ? 'Clearing...' : 'Clear cart'}
                 </button>
               </div>
 
@@ -109,27 +219,39 @@ const Cart = () => {
                           <div className="flex items-center border border-gray-600 rounded-lg bg-gray-800/50">
                             <button
                               onClick={() => handleQuantityChange(item.id, item.size, item.quantity - 1)}
-                              className="px-3 py-1 text-gray-400 hover:text-white hover:bg-gray-700/50 transition-colors"
-                              disabled={item.quantity <= 1}
+                              className="px-3 py-1 text-gray-400 hover:text-white hover:bg-gray-700/50 transition-colors disabled:opacity-50"
+                              disabled={item.quantity <= 1 || updatingItems[`${item.id}-${item.size}`]}
                             >
                               -
                             </button>
-                            <span className="px-3 py-1 text-gray-300">{item.quantity}</span>
+                            <span className="px-3 py-1 text-gray-300 min-w-[40px] text-center">
+                              {updatingItems[`${item.id}-${item.size}`] ? (
+                                <div className="w-4 h-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                              ) : (
+                                item.quantity
+                              )}
+                            </span>
                             <button
                               onClick={() => handleQuantityChange(item.id, item.size, item.quantity + 1)}
-                              className="px-3 py-1 text-gray-400 hover:text-white hover:bg-gray-700/50 transition-colors"
+                              className="px-3 py-1 text-gray-400 hover:text-white hover:bg-gray-700/50 transition-colors disabled:opacity-50"
+                              disabled={item.quantity >= item.stock || updatingItems[`${item.id}-${item.size}`]}
                             >
                               +
                             </button>
                           </div>
                           
                           <button
-                            onClick={() => removeFromCart(item.id, item.size)}
-                            className="ml-4 text-red-400 hover:text-red-300 transition-colors"
+                            onClick={() => handleRemoveItem(item.id, item.size)}
+                            className="ml-4 text-red-400 hover:text-red-300 transition-colors disabled:opacity-50"
+                            disabled={updatingItems[`${item.id}-${item.size}`]}
                           >
-                            Remove
+                            {updatingItems[`${item.id}-${item.size}`] ? 'Removing...' : 'Remove'}
                           </button>
                         </div>
+                        
+                        {item.quantity >= item.stock && (
+                          <p className="text-sm text-red-400 mt-2">Maximum available quantity reached</p>
+                        )}
                       </div>
                       
                       <div className="sm:ml-6 mt-4 sm:mt-0">

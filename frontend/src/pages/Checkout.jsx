@@ -13,7 +13,6 @@ const Checkout = () => {
   const { user, isAuthenticated } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
-  const [orderDetails, setOrderDetails] = useState(null);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -63,50 +62,215 @@ const Checkout = () => {
       return;
     }
 
-    // Show confirmation modal instead of processing immediately
+    // Validate phone number format
+    const phoneRegex = /^(\+251|0)[79]\d{8}$/;
+    if (!phoneRegex.test(formData.phoneNumber.replace(/\s/g, ''))) {
+      alert('Please enter a valid Ethiopian phone number (e.g., +251 9XX XXX XXX or 09XX XXX XXX)');
+      return;
+    }
+
+    // Show confirmation modal
     setShowConfirmation(true);
   };
 
-// In your Checkout.jsx, update the order submission:
 const handleConfirmOrder = async () => {
   setIsProcessing(true);
   setShowConfirmation(false);
 
   try {
-    const orderData = {
-      items: items.map(item => ({
-        product: item.id, // Product ID
+    console.log('🔄 === STARTING ORDER CREATION ===');
+    
+    // Check authentication
+    const token = localStorage.getItem('token');
+    console.log('🔐 Auth token exists:', !!token);
+    console.log('👤 User authenticated:', isAuthenticated);
+    console.log('👤 User data:', user);
+
+    // Check cart items
+    console.log('🛒 Cart items:', items);
+    console.log('🛒 Cart items count:', items.length);
+
+    // DEBUG: Log the structure of each item
+    console.log('🔍 Detailed item structure:');
+    items.forEach((item, index) => {
+      console.log(`Item ${index}:`, {
+        id: item.id,
+        _id: item._id,
+        cartItemId: item.cartItemId,
+        productId: item.productId,
+        name: item.name,
+        hasProductObject: !!item.product,
+        productObject: item.product
+      });
+    });
+
+    // Extract product IDs correctly - handle both frontend and backend structures
+    const validItems = items.map(item => {
+      let productId;
+      
+      // Method 1: If item has a product object (from backend cart)
+      if (item.product && item.product._id) {
+        productId = item.product._id;
+        console.log(`📦 Using product._id: ${productId} for ${item.name}`);
+      }
+      // Method 2: If item has direct product ID
+      else if (item.id) {
+        productId = item.id;
+        console.log(`📦 Using item.id: ${productId} for ${item.name}`);
+      }
+      // Method 3: If item has _id (direct product reference)
+      else if (item._id) {
+        productId = item._id;
+        console.log(`📦 Using item._id: ${productId} for ${item.name}`);
+      }
+      // Method 4: Check for cartItemId (this is the cart item ID, not product ID)
+      else if (item.cartItemId) {
+        console.log(`⚠️ cartItemId found: ${item.cartItemId} - this is cart item ID, not product ID`);
+        // We need to fetch the actual product ID from the cart
+      }
+
+      console.log(`✅ Final productId for "${item.name}": ${productId}`);
+
+      if (!productId) {
+        console.error(`❌ No valid product ID found for item:`, item);
+        return null;
+      }
+
+      return {
+        product: productId,
         size: item.size,
         quantity: item.quantity
-      })),
+      };
+    }).filter(item => item !== null); // Remove null items
+
+    console.log('✅ Valid items for order:', validItems);
+
+    if (validItems.length === 0) {
+      // If no valid items, try alternative approach - fetch fresh cart from backend
+      console.log('🔄 Trying alternative approach - fetching fresh cart data...');
+      try {
+        const cartResponse = await fetch('http://localhost:5000/api/cart', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (cartResponse.ok) {
+          const cartData = await cartResponse.json();
+          console.log('🛒 Fresh cart data from backend:', cartData);
+          
+          if (cartData.cart && cartData.cart.items && cartData.cart.items.length > 0) {
+            const backendItems = cartData.cart.items.map(item => ({
+              product: item.product._id,
+              size: item.size,
+              quantity: item.quantity
+            }));
+            
+            console.log('✅ Items from backend cart:', backendItems);
+            validItems.push(...backendItems);
+          }
+        }
+      } catch (fetchError) {
+        console.error('❌ Failed to fetch cart from backend:', fetchError);
+      }
+    }
+
+    // Final validation
+    if (validItems.length === 0) {
+      const errorMsg = 'No valid products in cart. Please add products to cart and try again.';
+      console.error('❌', errorMsg);
+      throw new Error(errorMsg);
+    }
+
+    // Prepare order data
+    const orderData = {
+      items: validItems,
       shippingInfo: {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        phoneNumber: formData.phoneNumber,
-        blockNumber: formData.blockNumber,
-        roomDormNumber: formData.roomDormNumber
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        phoneNumber: formData.phoneNumber.trim(),
+        blockNumber: formData.blockNumber.trim(),
+        roomDormNumber: formData.roomDormNumber.trim()
       },
       paymentMethod: 'cash_on_delivery'
     };
 
-    const response = await ordersAPI.create(orderData);
-    const order = response.data.order;
+    console.log('📦 Final order data to send:', JSON.stringify(orderData, null, 2));
 
-    // Clear cart and show success
+    // Test the API endpoint first
+    console.log('🌐 Testing API connectivity...');
+    try {
+      const healthCheck = await fetch('http://localhost:5000/api/health');
+      console.log('🏥 Backend health check:', healthCheck.status, healthCheck.statusText);
+    } catch (healthError) {
+      console.error('💀 Backend is not reachable:', healthError);
+      throw new Error('Cannot connect to server. Please make sure the backend is running on http://localhost:5000');
+    }
+
+    // Send order to backend
+    console.log('🚀 Sending order to backend...');
+    const response = await ordersAPI.create(orderData);
+    console.log('✅ Order created successfully!', response);
+    console.log('📋 Response data:', response.data);
+
+    const order = response.data.order || response.data;
+    console.log('🎉 Order details:', order);
+
+    // Clear cart
     clearCart();
+    console.log('🛒 Cart cleared');
     
     // Navigate to order success page
+    console.log('📍 Navigating to order success page...');
     navigate('/order-success', { 
       state: { 
-        orderId: order.orderId,
+        orderId: order.orderId || order._id,
         orderDetails: order
       } 
     });
+
   } catch (error) {
-    console.error('Error creating order:', error);
-    alert(error.response?.data?.message || 'Failed to create order');
+    console.error('❌ === ORDER CREATION FAILED ===');
+    console.error('❌ Error name:', error.name);
+    console.error('❌ Error message:', error.message);
+    console.error('❌ Error stack:', error.stack);
+    
+    if (error.response) {
+      console.error('📊 Server responded with error:');
+      console.error('Status:', error.response.status);
+      console.error('Data:', error.response.data);
+      
+      let errorMessage = error.response.data?.message || `Server error (${error.response.status})`;
+      
+      if (error.response.status === 401) {
+        errorMessage = 'Your session has expired. Please log in again.';
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        navigate('/login');
+      } else if (error.response.status === 400) {
+        if (errorMessage.includes('stock')) {
+          errorMessage = 'Some items are out of stock. Please update your cart.';
+          navigate('/cart');
+        } else if (errorMessage.includes('product')) {
+          errorMessage = 'Invalid product in cart. Please update your cart.';
+          navigate('/cart');
+        }
+      }
+      
+      alert(`Order Failed: ${errorMessage}`);
+      
+    } else if (error.request) {
+      console.error('🌐 No response received:', error.request);
+      alert('Network Error: Cannot connect to the server. Please check:\n1. Backend server is running on http://localhost:5000\n2. Your internet connection\n3. CORS settings');
+      
+    } else {
+      console.error('💥 Request setup error:', error.message);
+      alert(`Error: ${error.message}`);
+    }
   } finally {
     setIsProcessing(false);
+    console.log('🔚 Order process completed');
   }
 };
 
@@ -255,7 +419,7 @@ const handleConfirmOrder = async () => {
                     onChange={handleInputChange}
                     required
                     className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 text-white placeholder-gray-500 transition-all duration-300"
-                    placeholder="+251 ___ ___ ___"
+                    placeholder="+251 9XX XXX XXX or 09XX XXX XXX"
                   />
                   <p className="text-xs text-gray-500 mt-1">We'll contact you for delivery updates</p>
                 </div>
@@ -327,7 +491,7 @@ const handleConfirmOrder = async () => {
                 
                 <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
                   {items.map(item => (
-                    <div key={`${item.id}-${item.size}`} className="flex justify-between items-start pb-4 border-b border-gray-700/50">
+                    <div key={`${item._id || item.id}-${item.size}`} className="flex justify-between items-start pb-4 border-b border-gray-700/50">
                       <div className="flex items-start space-x-3">
                         <img
                           src={item.image}
@@ -404,7 +568,6 @@ const handleConfirmOrder = async () => {
                 
                 <p className="text-sm text-gray-500 mt-4 text-center">
                   By completing your order, you agree to our Terms of Service and Privacy Policy.
-                  <br />
                 </p>
 
                 {/* Security Notice */}
@@ -479,20 +642,22 @@ const handleConfirmOrder = async () => {
                     <button
                       onClick={handleCancelOrder}
                       className="flex-1 px-4 py-3 bg-gray-700 text-gray-300 rounded-xl hover:bg-gray-600 transition-colors font-medium"
+                      disabled={isProcessing}
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleConfirmOrder}
                       className="flex-1 px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:from-green-600 hover:to-emerald-600 transition-all font-medium shadow-lg shadow-green-500/25"
+                      disabled={isProcessing}
                     >
-                      Yes, Place Order
+                      {isProcessing ? 'Processing...' : 'Yes, Place Order'}
                     </button>
                   </div>
 
                   {/* Note */}
                   <p className="text-xs text-gray-500 mt-4">
-                    You'll be redirected to the order success page after confirmation
+                    {isProcessing ? 'Creating your order...' : 'You\'ll be redirected to the order success page after confirmation'}
                   </p>
                 </div>
               </motion.div>

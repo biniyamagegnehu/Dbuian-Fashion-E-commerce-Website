@@ -1,4 +1,3 @@
-// backend/models/Order.js
 const mongoose = require('mongoose');
 
 const orderSchema = new mongoose.Schema({
@@ -97,7 +96,20 @@ const orderSchema = new mongoose.Schema({
 // Generate order ID before saving
 orderSchema.pre('save', function(next) {
   if (!this.orderId) {
-    this.orderId = `DBU-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    // Generate a unique order ID
+    const timestamp = Date.now().toString(36);
+    const randomStr = Math.random().toString(36).substr(2, 9);
+    this.orderId = `DBU-${timestamp}-${randomStr}`.toUpperCase();
+  }
+  next();
+});
+
+// Alternative method if you prefer a simpler approach
+orderSchema.pre('validate', function(next) {
+  if (!this.orderId) {
+    const timestamp = Date.now();
+    const randomNum = Math.floor(Math.random() * 10000);
+    this.orderId = `DBU-${timestamp}-${randomNum}`;
   }
   next();
 });
