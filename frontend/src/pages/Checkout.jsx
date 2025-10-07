@@ -540,7 +540,7 @@ const handleConfirmOrder = async () => {
                     Estimated Delivery
                   </h3>
                   <p className="text-green-300 text-sm">
-                    Within 1 hour on campus
+                    Within 3 hour on campus
                   </p>
                 </div>
                 
