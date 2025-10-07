@@ -52,8 +52,10 @@ export const uploadAPI = {
 };
 
 export const reviewsAPI = {
-  getAll: () => api.get('/reviews'),
+  getAll: () => api.get('/reviews'), // ✅ CHANGED: Use main reviews endpoint for admin
   getByProduct: (productId) => api.get(`/reviews/product/${productId}`),
+  create: (data) => api.post('/reviews', data),
+  update: (id, data) => api.put(`/reviews/${id}`, data),
   delete: (id) => api.delete(`/reviews/${id}`),
 };
 

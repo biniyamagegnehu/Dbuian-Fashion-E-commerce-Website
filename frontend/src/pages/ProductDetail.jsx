@@ -31,7 +31,7 @@ const ProductDetail = () => {
   const [hasPurchased, setHasPurchased] = useState(false);
   const [purchaseCheckLoading, setPurchaseCheckLoading] = useState(false);
 
-  console.log('Product ID from URL:', id); // Debug log
+  console.log('Product ID from URL:', id);
 
   // Format price in Birr
   const formatPrice = (price) => {
@@ -48,7 +48,6 @@ const ProductDetail = () => {
   // Load product from backend
   useEffect(() => {
     const loadProductData = async () => {
-      // Check if ID is valid
       if (!id || id === 'undefined') {
         setError('Invalid product ID');
         setLoading(false);
@@ -59,23 +58,20 @@ const ProductDetail = () => {
         setLoading(true);
         setError(null);
         
-        console.log('Fetching product with ID:', id); // Debug log
+        console.log('Fetching product with ID:', id);
         
-        // Fetch product from backend API
         const productResponse = await productsAPI.getById(id);
-        console.log('Product response:', productResponse); // Debug log
+        console.log('Product response:', productResponse);
         
         const productData = productResponse.data?.product || productResponse.data;
         
         if (productData) {
           setProduct(productData);
           
-          // Set default size if available
           if (productData.size && productData.size.length > 0) {
             setSelectedSize(productData.size[0]);
           }
           
-          // Load reviews for this product
           try {
             const reviewsResponse = await reviewsAPI.getByProduct(id);
             setReviews(reviewsResponse.data?.reviews || []);
@@ -105,11 +101,9 @@ const ProductDetail = () => {
       if (isAuthenticated && user && product) {
         setPurchaseCheckLoading(true);
         try {
-          // Get user's orders from backend
           const ordersResponse = await ordersAPI.getUserOrders();
           const userOrders = ordersResponse.data?.orders || [];
           
-          // Check if any delivered order contains this product
           const hasPurchasedProduct = userOrders.some(order => 
             order.orderStatus === 'delivered' && 
             order.items.some(item => {
@@ -171,7 +165,6 @@ const ProductDetail = () => {
 
     setReviewSubmitting(true);
     try {
-      // Submit review to backend
       const reviewData = {
         productId: id,
         rating: reviewRating,
@@ -181,7 +174,6 @@ const ProductDetail = () => {
       const response = await reviewsAPI.create(reviewData);
       const newReview = response.data?.review;
 
-      // Add new review to the list
       setReviews(prev => [newReview, ...prev]);
       setReviewRating(0);
       setReviewComment('');
@@ -303,7 +295,6 @@ const ProductDetail = () => {
 
   const averageRating = calculateAverageRating();
   
-  // Prepare images for gallery - use backend image structure
   const productImages = product.images && product.images.length > 0 
     ? product.images.map(img => getImageUrl(img.url))
     : [getImageUrl(product.image) || '/images/placeholder.jpg'];
@@ -463,39 +454,155 @@ const ProductDetail = () => {
                 </div>
               </div>
             </GlassCard>
-{/* Reviews List */}
-                <div className="space-y-4">
-                  {reviews.length === 0 ? (
-                    <p className="text-gray-400 text-center py-8">No reviews yet. Be the first to review this product!</p>
-                  ) : (
-                    reviews.map((review) => (
-                      <motion.div
-                        key={review._id || review.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="p-4 bg-gray-800/30 rounded-lg border border-gray-700/50"
+
+            {/* Reviews Section */}
+            <GlassCard className="p-6 backdrop-blur-xl mt-8">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-white">Customer Reviews</h2>
+                
+                {/* Write Review Button - Only show if user can review */}
+                {!showReviewForm && (
+                  <AnimatedButton
+                    onClick={() => {
+                      if (!isAuthenticated) {
+                        alert('Please sign in to write a review');
+                        navigate('/login');
+                        return;
+                      }
+                      if (!hasPurchased) {
+                        alert('You need to purchase this product before writing a review');
+                        return;
+                      }
+                      setShowReviewForm(true);
+                    }}
+                    className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
+                    disabled={purchaseCheckLoading}
+                  >
+                    {purchaseCheckLoading ? 'Checking...' : 'Write a Review'}
+                  </AnimatedButton>
+                )}
+              </div>
+
+              {/* Review Requirements Message */}
+              {requirementsMessage && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`p-4 rounded-lg mb-6 ${
+                    requirementsMessage.type === 'warning' 
+                      ? 'bg-yellow-400/10 border border-yellow-400/20 text-yellow-300'
+                      : 'bg-blue-400/10 border border-blue-400/20 text-blue-300'
+                  }`}
+                >
+                  <div className="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                    {requirementsMessage.message}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Review Form */}
+              {showReviewForm && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mb-8 p-6 bg-gray-800/30 rounded-lg border border-gray-700/50"
+                >
+                  <h3 className="text-xl font-semibold text-white mb-4">Write Your Review</h3>
+                  <form onSubmit={handleReviewSubmit}>
+                    {/* Rating Selection */}
+                    <div className="mb-4">
+                      <label className="block text-gray-300 mb-2">Your Rating</label>
+                      <div className="flex items-center">
+                        {renderStarRating(reviewRating, true, setReviewRating)}
+                        <span className="ml-3 text-cyan-400 font-medium">
+                          {reviewRating > 0 ? `${reviewRating} out of 5` : 'Select rating'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Review Comment */}
+                    <div className="mb-4">
+                      <label htmlFor="reviewComment" className="block text-gray-300 mb-2">
+                        Your Review
+                      </label>
+                      <textarea
+                        id="reviewComment"
+                        value={reviewComment}
+                        onChange={(e) => setReviewComment(e.target.value)}
+                        placeholder="Share your experience with this product..."
+                        className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 text-white placeholder-gray-400 resize-none"
+                        rows="4"
+                        required
+                      />
+                    </div>
+
+                    {/* Form Actions */}
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setShowReviewForm(false)}
+                        className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                        disabled={reviewSubmitting}
                       >
-                        <div className="flex items-center justify-between mb-2">
+                        Cancel
+                      </button>
+                      <AnimatedButton
+                        type="submit"
+                        className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
+                        disabled={reviewSubmitting}
+                      >
+                        {reviewSubmitting ? (
                           <div className="flex items-center">
-                            <div className="w-8 h-8 bg-gradient-to-r from-cyan-400 to-purple-500 rounded-full flex items-center justify-center text-white text-sm font-bold mr-3">
-                              {review.userName ? review.userName.charAt(0) : 'U'}
-                            </div>
-                            <span className="text-white font-medium">
-                              {review.userName || 'Anonymous User'}
-                            </span>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                            Submitting...
                           </div>
-                          <div className="flex items-center">
-                            {renderStarRating(review.rating)}
-                            <span className="ml-2 text-gray-400 text-sm">
-                              {new Date(review.createdAt).toLocaleDateString()}
-                            </span>
+                        ) : (
+                          'Submit Review'
+                        )}
+                      </AnimatedButton>
+                    </div>
+                  </form>
+                </motion.div>
+              )}
+
+              {/* Reviews List */}
+              <div className="space-y-4">
+                {reviews.length === 0 ? (
+                  <p className="text-gray-400 text-center py-8">No reviews yet. Be the first to review this product!</p>
+                ) : (
+                  reviews.map((review) => (
+                    <motion.div
+                      key={review._id || review.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-4 bg-gray-800/30 rounded-lg border border-gray-700/50"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center">
+                          <div className="w-8 h-8 bg-gradient-to-r from-cyan-400 to-purple-500 rounded-full flex items-center justify-center text-white text-sm font-bold mr-3">
+                            {review.userName ? review.userName.charAt(0) : 'U'}
                           </div>
+                          <span className="text-white font-medium">
+                            {review.userName || 'Anonymous User'}
+                          </span>
                         </div>
-                        <p className="text-gray-300">{review.comment}</p>
-                      </motion.div>
-                    ))
-                  )}
-                </div>
+                        <div className="flex items-center">
+                          {renderStarRating(review.rating)}
+                          <span className="ml-2 text-gray-400 text-sm">
+                            {new Date(review.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                      <p className="text-gray-300">{review.comment}</p>
+                    </motion.div>
+                  ))
+                )}
+              </div>
+            </GlassCard>
           </motion.div>
         </div>
       </div>

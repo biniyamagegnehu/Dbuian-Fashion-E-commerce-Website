@@ -9,6 +9,7 @@ const Reviews = () => {
   const [reviews, setReviews] = useState([]);
   const [filteredReviews, setFilteredReviews] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [stats, setStats] = useState({
     total: 0,
     averageRating: 0,
@@ -28,10 +29,21 @@ const Reviews = () => {
   const fetchReviews = async () => {
     try {
       setLoading(true);
+      setError(null);
+      console.log('🔄 Fetching reviews from API...');
+      
       const response = await reviewsAPI.getAll();
-      setReviews(response.data.reviews || []);
+      console.log('📊 Reviews API response:', response);
+      
+      // Handle different response structures
+      const reviewsData = response.data?.reviews || response.data || [];
+      console.log('✅ Reviews data:', reviewsData);
+      
+      setReviews(reviewsData);
     } catch (error) {
-      console.error('Error fetching reviews:', error);
+      console.error('❌ Error fetching reviews:', error);
+      setError(error.response?.data?.message || 'Failed to fetch reviews');
+      setReviews([]);
     } finally {
       setLoading(false);
     }
@@ -42,12 +54,19 @@ const Reviews = () => {
 
     // Search filter
     if (searchTerm) {
-      filtered = filtered.filter(review =>
-        review.product?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        review.user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        review.comment?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        review.user?.email?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+      filtered = filtered.filter(review => {
+        const productName = review.product?.name || '';
+        const userName = review.user?.name || review.userName || '';
+        const userEmail = review.user?.email || '';
+        const comment = review.comment || '';
+        
+        return (
+          productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          userEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          comment.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      });
     }
 
     // Rating filter
@@ -112,13 +131,19 @@ const Reviews = () => {
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    if (!dateString) return 'N/A';
+    
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      return 'Invalid Date';
+    }
   };
 
   const StatCard = ({ title, value, description, color, icon: Icon }) => (
@@ -164,7 +189,7 @@ const Reviews = () => {
     const headers = ['Product', 'Customer', 'Rating', 'Comment', 'Sentiment', 'Date'];
     const csvData = filteredReviews.map(review => [
       review.product?.name || 'N/A',
-      review.user?.name || 'N/A',
+      review.user?.name || review.userName || 'Anonymous',
       review.rating,
       `"${(review.comment || '').replace(/"/g, '""')}"`,
       getSentiment(review.rating).text,
@@ -192,6 +217,24 @@ const Reviews = () => {
     );
   }
 
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-96">
+        <div className="text-red-400 text-center">
+          <MessageSquare className="w-16 h-16 mx-auto mb-4" />
+          <h3 className="text-xl font-semibold mb-2">Error Loading Reviews</h3>
+          <p className="text-gray-400 mb-4">{error}</p>
+          <button
+            onClick={fetchReviews}
+            className="px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -202,10 +245,20 @@ const Reviews = () => {
           </h1>
           <p className="text-gray-400 mt-2">Monitor and manage customer reviews and ratings</p>
         </div>
-        <div className="mt-4 sm:mt-0">
+        <div className="mt-4 sm:mt-0 flex space-x-3">
+          <button 
+            onClick={fetchReviews}
+            className="px-4 py-2 bg-white/5 border border-white/10 text-gray-300 rounded-lg hover:bg-white/10 transition-colors flex items-center space-x-2"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+            </svg>
+            <span>Refresh</span>
+          </button>
           <button 
             onClick={exportReviews}
             className="btn-primary flex items-center space-x-2"
+            disabled={filteredReviews.length === 0}
           >
             <Download className="w-4 h-4" />
             <span>Export Reviews</span>
@@ -317,18 +370,25 @@ const Reviews = () => {
               <tbody>
                 {filteredReviews.map((review) => {
                   const sentiment = getSentiment(review.rating);
+                  const productName = review.product?.name || 'Product Not Found';
+                  const userName = review.user?.name || review.userName || 'Anonymous';
+                  const userInitial = userName.charAt(0).toUpperCase();
+                  
                   return (
                     <tr key={review._id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                       <td className="py-4 px-4">
                         <div className="flex items-center space-x-3">
                           <div className="w-10 h-10 bg-gradient-to-r from-cyan-400 to-blue-400 rounded-lg flex items-center justify-center">
                             <span className="text-white font-bold text-sm">
-                              {review.product?.name?.charAt(0)?.toUpperCase() || 'P'}
+                              {productName.charAt(0).toUpperCase()}
                             </span>
                           </div>
                           <div>
-                            <div className="text-white font-medium">{review.product?.name || 'N/A'}</div>
-                            <div className="text-gray-400 text-sm">{review.user?.name || 'Anonymous'}</div>
+                            <div className="text-white font-medium">{productName}</div>
+                            <div className="text-gray-400 text-sm">{userName}</div>
+                            {review.user?.email && (
+                              <div className="text-gray-500 text-xs">{review.user.email}</div>
+                            )}
                           </div>
                         </div>
                       </td>
@@ -341,7 +401,10 @@ const Reviews = () => {
                         </div>
                       </td>
                       <td className="py-4 px-4">
-                        <div className="text-white max-w-xs truncate" title={review.comment}>
+                        <div 
+                          className="text-white max-w-xs" 
+                          title={review.comment}
+                        >
                           {review.comment || 'No comment provided'}
                         </div>
                       </td>
@@ -381,13 +444,23 @@ const Reviews = () => {
           ) : (
             <div className="text-center py-12">
               <MessageSquare className="w-16 h-16 text-gray-500 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-white mb-2">No Reviews Found</h3>
+              <h3 className="text-xl font-semibold text-white mb-2">
+                {reviews.length === 0 ? "No Reviews Found" : "No Matching Reviews"}
+              </h3>
               <p className="text-gray-400 mb-6">
                 {reviews.length === 0 
                   ? "No reviews have been submitted yet."
                   : "No reviews match your current filters. Try adjusting your search criteria."
                 }
               </p>
+              {reviews.length === 0 && (
+                <button
+                  onClick={fetchReviews}
+                  className="px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors"
+                >
+                  Check Again
+                </button>
+              )}
             </div>
           )}
         </div>

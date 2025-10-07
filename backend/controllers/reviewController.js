@@ -1,8 +1,27 @@
-// backend/controllers/reviewController.js
 const Review = require('../models/Review');
 const Product = require('../models/Product');
 const Order = require('../models/Order');
 const ErrorResponse = require('../utils/errorResponse');
+
+// @desc    Get all reviews (Admin)
+// @route   GET /api/reviews
+// @access  Private/Admin
+exports.getAllReviews = async (req, res, next) => {
+  try {
+    const reviews = await Review.find()
+      .populate('product', 'name images price')
+      .populate('user', 'name email')
+      .sort('-createdAt');
+
+    res.status(200).json({
+      success: true,
+      count: reviews.length,
+      reviews
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 // @desc    Get reviews for a product
 // @route   GET /api/reviews/product/:productId
