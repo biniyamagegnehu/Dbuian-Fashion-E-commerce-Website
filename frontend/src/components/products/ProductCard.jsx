@@ -2,6 +2,8 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import GlassCard from '../ui/GlassCard';
+import { getImageUrl } from '../../services/api';
+import { Package } from 'lucide-react';
 
 const ProductCard = ({ product, layout = 'grid' }) => {
   // Format price in Birr
@@ -11,6 +13,20 @@ const ProductCard = ({ product, layout = 'grid' }) => {
 
   // Use _id for MongoDB or id for local data
   const productId = product._id || product.id;
+
+  // Get the first image from the images array
+  const getProductImage = () => {
+    if (product.images && product.images.length > 0) {
+      const firstImage = product.images[0];
+      return getImageUrl(
+        typeof firstImage === 'string' ? firstImage : firstImage.url
+      );
+    }
+    // Fallback to product.image if images array doesn't exist
+    return product.image || null;
+  };
+
+  const productImage = getProductImage();
 
   if (layout === 'list') {
     return (
@@ -25,12 +41,22 @@ const ProductCard = ({ product, layout = 'grid' }) => {
           <Link to={`/product/${productId}`}>
             <div className="flex flex-col md:flex-row gap-4">
               <div className="md:w-1/4">
-                <div className="relative overflow-hidden rounded-xl">
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    className="w-full h-48 md:h-32 object-cover transition-transform duration-500 hover:scale-105"
-                  />
+                <div className="relative overflow-hidden rounded-xl bg-white/5">
+                  {productImage ? (
+                    <img
+                      src={productImage}
+                      alt={product.name}
+                      className="w-full h-48 md:h-32 object-cover transition-transform duration-500 hover:scale-105"
+                      onError={(e) => {
+                        console.error('Image failed to load:', productImage);
+                        e.target.style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-48 md:h-32 flex items-center justify-center">
+                      <Package className="w-12 h-12 text-gray-500" />
+                    </div>
+                  )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300" />
                 </div>
               </div>
@@ -83,11 +109,21 @@ const ProductCard = ({ product, layout = 'grid' }) => {
       <GlassCard className="h-full overflow-hidden group backdrop-blur-xl border border-white/10 hover:border-cyan-500/30 transition-all duration-300">
         <Link to={`/product/${productId}`}>
           <div className="relative overflow-hidden">
-            <img
-              src={product.image}
-              alt={product.name}
-              className="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-110"
-            />
+            {productImage ? (
+              <img
+                src={productImage}
+                alt={product.name}
+                className="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-110"
+                onError={(e) => {
+                  console.error('Image failed to load:', productImage);
+                  e.target.style.display = 'none';
+                }}
+              />
+            ) : (
+              <div className="w-full h-64 bg-white/5 flex items-center justify-center">
+                <Package className="w-16 h-16 text-gray-500" />
+              </div>
+            )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             
             {/* Gender badge */}
@@ -151,7 +187,7 @@ const ProductCard = ({ product, layout = 'grid' }) => {
             <div className="flex items-center justify-between pt-3 border-t border-white/10">
               <div className="flex items-center space-x-3">
                 <span className="text-xs text-cyan-300/70 bg-cyan-400/10 px-2 py-1 rounded-full">
-                  {product.size?.length || 6} sizes
+                  {product.size?.length || 0} sizes
                 </span>
                 <span className={`text-xs px-2 py-1 rounded-full ${
                   product.stock > 10 
@@ -160,7 +196,7 @@ const ProductCard = ({ product, layout = 'grid' }) => {
                     ? 'bg-yellow-400/10 text-yellow-300'
                     : 'bg-red-400/10 text-red-300'
                 }`}>
-                  {product.stock} in stock
+                  {product.stock || 0} in stock
                 </span>
               </div>
               

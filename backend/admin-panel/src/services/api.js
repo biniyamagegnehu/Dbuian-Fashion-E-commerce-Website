@@ -60,26 +60,32 @@ export const reviewsAPI = {
 };
 
 // Helper function to get full image URL
-export const getImageUrl = (imageUrl) => {
-  if (!imageUrl) return '';
+export const getImageUrl = (imagePath) => {
+  if (!imagePath) return '/placeholder-image.jpg';
+  
+  console.log('Original image path:', imagePath);
   
   // If it's already a full URL, return as is
-  if (imageUrl.startsWith('http')) {
-    return imageUrl;
+  if (imagePath.startsWith('http')) {
+    return imagePath;
   }
   
-  // If it's a base64 data URL, return as is
-  if (imageUrl.startsWith('data:')) {
-    return imageUrl;
+  // If it's a Cloudinary URL, return as is
+  if (imagePath.includes('cloudinary.com')) {
+    return imagePath;
   }
   
-  // If it's a mock image path, construct the full URL
-  if (imageUrl.startsWith('/api/mock-images/')) {
-    return `http://localhost:5000${imageUrl}`;
+  // Handle mock images - they should point to backend (port 5000), not frontend (port 5173)
+  if (imagePath.includes('mock-images') || imagePath.startsWith('/api/mock-images')) {
+    // Ensure we're pointing to the backend server
+    const cleanPath = imagePath.startsWith('/') ? imagePath : `/api/mock-images/${imagePath}`;
+    const fullUrl = `${API_BASE_URL}${cleanPath}`;
+    console.log('Mock image full URL:', fullUrl);
+    return fullUrl;
   }
   
-  // Return the original URL for other cases
-  return imageUrl;
+  // Default case - point to backend
+  return `${API_BASE_URL}/uploads/${imagePath}`;
 };
 
 export default api;

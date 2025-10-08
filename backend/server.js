@@ -2,6 +2,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
@@ -12,6 +13,8 @@ app.use(cors());
 // Body parser
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use('/api/mock-images', express.static(path.join(__dirname, 'temp_uploads')));
+
 
 // Connect to MongoDB
 const connectDB = async () => {

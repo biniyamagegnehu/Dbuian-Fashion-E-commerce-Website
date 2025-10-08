@@ -144,43 +144,44 @@ const Products = () => {
     }));
   };
 
-  // Working image upload function
-  const handleImageUpload = async (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length === 0) return;
+const handleImageUpload = async (e) => {
+  const files = Array.from(e.target.files);
+  if (files.length === 0) return;
 
-    setUploading(true);
+  setUploading(true);
 
-    try {
-      // Simple single file upload
-      const formData = new FormData();
-      formData.append('image', files[0]);
+  try {
+    const formData = new FormData();
+    formData.append('image', files[0]);
+    
+    console.log('Uploading image:', files[0].name);
+    
+    const response = await uploadAPI.uploadImage(formData);
+    console.log('Upload response:', response.data);
+    
+    if (response.data.success) {
+      const uploadedImage = response.data.data.image;
+      console.log('Uploaded image data:', uploadedImage);
       
-      console.log('Uploading image:', files[0].name);
-      
-      const response = await uploadAPI.uploadImage(formData);
-      console.log('Upload response:', response.data);
-      
-      if (response.data.success) {
-        setFormData(prev => ({
-          ...prev,
-          images: [...prev.images, response.data.data.image]
-        }));
-        console.log('Image added successfully');
-      } else {
-        throw new Error(response.data.message || 'Upload failed');
-      }
-
-      // Clear the file input
-      e.target.value = '';
-
-    } catch (error) {
-      console.error('Upload error:', error);
-      alert(`Upload failed: ${error.response?.data?.message || error.message}`);
-    } finally {
-      setUploading(false);
+      setFormData(prev => ({
+        ...prev,
+        images: [...prev.images, uploadedImage]
+      }));
+      console.log('Image added to form data');
+    } else {
+      throw new Error(response.data.message || 'Upload failed');
     }
-  };
+
+    e.target.value = '';
+
+  } catch (error) {
+    console.error('Upload error:', error);
+    alert(`Upload failed: ${error.response?.data?.message || error.message}`);
+  } finally {
+    setUploading(false);
+  }
+};
+
 
   const removeImage = (index) => {
     setFormData(prev => ({
@@ -189,45 +190,54 @@ const Products = () => {
     }));
   };
 
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      price: '',
-      category: '',
-      gender: '',
-      size: [],
-      stock: '',
-      description: '',
-      material: 'Cotton',
-      care: 'Machine wash cold',
-      featured: false,
-      trending: false,
-      colors: [],
-      images: []
-    });
-    setEditingProduct(null);
-  };
+ const resetForm = () => {
+  setFormData({
+    name: '',
+    price: '',
+    category: '',
+    gender: '',
+    size: [],
+    stock: '',
+    description: '',
+    material: 'Cotton',
+    care: 'Machine wash cold',
+    featured: false,
+    trending: false,
+    colors: [],
+    images: [] 
+  });
+  setEditingProduct(null);
+};
 
   // Edit product functionality
-  const openEditModal = (product) => {
-    setFormData({
-      name: product.name,
-      price: product.price,
-      category: product.category,
-      gender: product.gender,
-      size: product.size || [],
-      stock: product.stock,
-      description: product.description,
-      material: product.material || 'Cotton',
-      care: product.care || 'Machine wash cold',
-      featured: product.featured || false,
-      trending: product.trending || false,
-      colors: product.colors || [],
-      images: product.images || []
-    });
-    setEditingProduct(product);
-    setShowAddProduct(true);
-  };
+ const openEditModal = (product) => {
+  // Normalize images array to ensure consistent structure
+  const normalizedImages = product.images && product.images.length > 0 
+    ? product.images.map(img => ({
+        url: typeof img === 'string' ? img : img.url,
+        public_id: typeof img === 'string' ? '' : img.public_id
+      }))
+    : [];
+  
+  setFormData({
+    name: product.name,
+    price: product.price,
+    category: product.category,
+    gender: product.gender,
+    size: product.size || [],
+    stock: product.stock,
+    description: product.description,
+    material: product.material || 'Cotton',
+    care: product.care || 'Machine wash cold',
+    featured: product.featured || false,
+    trending: product.trending || false,
+    colors: product.colors || [],
+    images: normalizedImages
+  });
+  setEditingProduct(product);
+  setShowAddProduct(true);
+};
+
 
   // Delete product functionality
   const handleDelete = async (productId) => {
@@ -323,6 +333,7 @@ const Products = () => {
     setSelectedGender('all');
     setPriceRange({ min: '', max: '' });
   };
+
 
   return (
     <div className="space-y-8">
@@ -479,24 +490,36 @@ const Products = () => {
           </h3>
         </div>
         
-        {filteredProducts.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredProducts.map(product => (
               <div key={product._id} className="glass-card p-4 hover:transform hover:scale-105 transition-all duration-300 group">
                 <div className="relative">
-                  <div className="w-full h-48 bg-white/5 rounded-lg mb-4 flex items-center justify-center overflow-hidden">
-{product.images && product.images.length > 0 ? (
-  <img 
-    src={getImageUrl(product.images[0].url)} 
-    alt={product.name}
-    className="w-full h-full object-cover rounded-lg group-hover:scale-110 transition-transform duration-300"
-  />
-) : (
-  <Package className="w-12 h-12 text-gray-500" />
-)}
-
-                  </div>
-                  
+<div className="w-full h-48 bg-white/5 rounded-lg mb-4 flex items-center justify-center overflow-hidden">
+  {product.images && product.images.length > 0 ? (
+    <img 
+      src={getImageUrl(
+        typeof product.images[0] === 'string' 
+          ? product.images[0] 
+          : product.images[0].url
+      )} 
+      alt={product.name}
+      className="w-full h-full object-cover rounded-lg group-hover:scale-110 transition-transform duration-300"
+      onError={(e) => {
+        // Fallback if image fails to load
+        e.target.style.display = 'none';
+        e.target.nextSibling.style.display = 'flex';
+      }}
+    />
+  ) : (
+    <Package className="w-12 h-12 text-gray-500" />
+  )}
+  {/* Fallback display */}
+  {product.images && product.images.length > 0 && (
+    <div className="hidden w-full h-full items-center justify-center bg-white/5">
+      <Package className="w-12 h-12 text-gray-500" />
+    </div>
+  )}
+</div>        
                   {/* Edit and Delete Buttons */}
                   <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex space-x-1">
                     <button
@@ -569,25 +592,49 @@ const Products = () => {
                   Product Images {formData.images.length > 0 && `(${formData.images.length} uploaded)`}
                 </label>
                 
-                {/* Uploaded Images Preview */}
-{formData.images.map((image, index) => (
-  <div key={index} className="relative group">
-    <img
-      src={getImageUrl(image.url)}
-      alt={`Product ${index + 1}`}
-      className="w-full h-24 object-cover rounded-lg border border-white/10"
-    />
-        <button
-      type="button"
-      onClick={() => removeImage(index)}
-      className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-      title="Remove image"
-    >
-      <X className="w-3 h-3" />
-    </button>
-  </div>
-))}
+{/* Uploaded Images Preview */}
+{formData.images.map((image, index) => {
+  // Get the image URL - handle both object and string formats
+  const imageUrl = getImageUrl(
+    typeof image === 'string' ? image : (image.url || image.secure_url)
+  );
+  
+  console.log(`Preview image ${index}:`, { image, imageUrl });
 
+  return (
+    <div key={index} className="relative group mb-4">
+      <div className="w-full h-24 bg-white/5 rounded-lg border border-white/10 overflow-hidden">
+        <img
+          src={imageUrl}
+          alt={`Product ${index + 1}`}
+          className="w-full h-full object-cover"
+          onLoad={() => console.log(`✅ Preview image ${index} loaded successfully`)}
+          onError={(e) => {
+            console.error(`❌ Preview image ${index} failed to load:`, imageUrl);
+            e.target.style.display = 'none';
+            // Show fallback
+            const fallback = e.target.parentNode.querySelector('.image-fallback');
+            if (fallback) fallback.style.display = 'flex';
+          }}
+        />
+        {/* Fallback */}
+        <div className="image-fallback hidden w-full h-full items-center justify-center absolute inset-0 bg-white/5">
+          <Image className="w-8 h-8 text-gray-500" />
+          <span className="text-xs text-gray-400 ml-2">Loading...</span>
+        </div>
+      </div>
+      
+      <button
+        type="button"
+        onClick={() => removeImage(index)}
+        className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+        title="Remove image"
+      >
+        <X className="w-3 h-3" />
+      </button>
+    </div>
+  );
+})}
                 {/* Upload Area */}
                 <label className="block">
                   <div className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors duration-200 group ${

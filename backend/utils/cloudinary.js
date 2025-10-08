@@ -13,20 +13,18 @@ if (!fs.existsSync(mockStorageDir)) {
 const mockUploadImage = async (file, folder = 'dbuian_fashion') => {
   console.log('Using mock upload for:', file.originalname);
   
-  // Simulate upload delay
   await new Promise(resolve => setTimeout(resolve, 500));
   
-  // Generate a unique filename
   const fileExtension = path.extname(file.originalname) || '.jpg';
   const uniqueFilename = `mock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}${fileExtension}`;
   const filePath = path.join(mockStorageDir, uniqueFilename);
   
-  // Save the actual file to temporary storage
   fs.writeFileSync(filePath, file.buffer);
   
-  // Create a mock Cloudinary response
+  // Return full backend URL
+  const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
   const mockResponse = {
-    secure_url: `/api/mock-images/${uniqueFilename}`, // Serve through an API endpoint
+    secure_url: `${backendUrl}/api/mock-images/${uniqueFilename}`, // Full backend URL
     public_id: `mock_${uniqueFilename}`,
     bytes: file.size,
     format: file.mimetype.split('/')[1] || 'jpg',
@@ -36,7 +34,7 @@ const mockUploadImage = async (file, folder = 'dbuian_fashion') => {
     original_filename: file.originalname
   };
   
-  console.log('Mock upload successful, file saved:', filePath);
+  console.log('Mock upload successful, URL:', mockResponse.secure_url);
   return mockResponse;
 };
 

@@ -1,4 +1,7 @@
 import { useState, useEffect } from 'react';
+import { getImageUrl } from '../services/api';
+import { ordersAPI } from '../services/api';
+import LoadingSpinner from '../components/UI/LoadingSpinner';
 import { 
   ShoppingCart, 
   Filter, 
@@ -19,8 +22,7 @@ import {
   AlertCircle,
   Timer
 } from 'lucide-react';
-import { ordersAPI } from '../services/api';
-import LoadingSpinner from '../components/UI/LoadingSpinner';
+
 
 const Orders = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -332,35 +334,61 @@ const Orders = () => {
           </div>
 
           {/* Order Items */}
-          <div className="lg:col-span-2 space-y-4">
-            <h3 className="text-lg font-semibold text-white flex items-center">
-              <Package className="w-5 h-5 mr-2 text-yellow-400" />
-              Order Items ({order.items?.length || 0})
-            </h3>
-            <div className="space-y-3">
-              {order.items?.map((item, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-gray-700/30 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <img
-                      src={item.image || '/images/default-product.jpg'}
-                      alt={item.name}
-                      className="w-12 h-12 object-cover rounded-lg"
-                    />
-                    <div>
-                      <div className="text-white font-medium">{item.name}</div>
-                      <div className="text-gray-400 text-sm">
-                        Size: {item.size} • Qty: {item.quantity}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-cyan-400 font-semibold">
-                    {formatPrice(item.price * item.quantity)}
-                  </div>
-                </div>
-              ))}
+<div className="lg:col-span-2 space-y-4">
+  <h3 className="text-lg font-semibold text-white flex items-center">
+    <Package className="w-5 h-5 mr-2 text-yellow-400" />
+    Order Items ({order.items?.length || 0})
+  </h3>
+  <div className="space-y-3">
+    {order.items?.map((item, index) => {
+      // Get the first image from the images array or fallback to item.image
+      const itemImage = item.images && item.images.length > 0 
+        ? getImageUrl(
+            typeof item.images[0] === 'string' 
+              ? item.images[0] 
+              : item.images[0].url
+          )
+        : item.image || '/images/default-product.jpg';
+
+      return (
+        <div key={index} className="flex items-center justify-between p-3 bg-gray-700/30 rounded-lg">
+          <div className="flex items-center space-x-3">
+            <div className="relative">
+              <img
+                src={itemImage}
+                alt={item.name}
+                className="w-12 h-12 object-cover rounded-lg"
+                onError={(e) => {
+                  console.error('Order item image failed to load:', itemImage);
+                  e.target.style.display = 'none';
+                  // Show fallback
+                  const fallback = document.createElement('div');
+                  fallback.className = 'w-12 h-12 bg-white/5 rounded-lg flex items-center justify-center';
+                  fallback.innerHTML = '<Package className="w-6 h-6 text-gray-500" />';
+                  e.target.parentNode.appendChild(fallback);
+                }}
+              />
+              {/* Fallback that shows if image fails */}
+              <div className="hidden w-12 h-12 bg-white/5 rounded-lg flex items-center justify-center absolute inset-0">
+                <Package className="w-6 h-6 text-gray-500" />
+              </div>
+            </div>
+            <div>
+              <div className="text-white font-medium">{item.name}</div>
+              <div className="text-gray-400 text-sm">
+                Size: {item.size} • Qty: {item.quantity}
+                {item.color && ` • Color: ${item.color}`}
+              </div>
             </div>
           </div>
-
+          <div className="text-cyan-400 font-semibold">
+            {formatPrice(item.price * item.quantity)}
+          </div>
+        </div>
+      );
+    })}
+  </div>
+</div>
           {/* Payment & Order Summary */}
           <div className="lg:col-span-2 space-y-4">
             <h3 className="text-lg font-semibold text-white flex items-center">
