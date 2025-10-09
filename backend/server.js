@@ -8,7 +8,10 @@ require('dotenv').config();
 const app = express();
 
 // Basic CORS - keep it simple
-app.use(cors());
+app.use(cors({
+  origin: ['https://dbuianfashion.onrender.com/'], // deployed frontend URL
+  credentials: true
+}));
 
 // Body parser
 app.use(express.json());
