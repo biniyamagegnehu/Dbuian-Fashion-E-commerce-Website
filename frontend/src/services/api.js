@@ -214,11 +214,11 @@ export const getImageUrl = (imagePath) => {
   }
   
   if (imagePath.startsWith('/api/mock-images/')) {
-    return `http://localhost:5000${imagePath}`;
+    return `${baseURL}${imagePath}`;
   }
   
   if (imagePath.startsWith('/uploads/')) {
-    return `http://localhost:5000${imagePath}`;
+    return `${baseURL}${imagePath}`;
   }
   
   // Handle Cloudinary URLs and other cases
