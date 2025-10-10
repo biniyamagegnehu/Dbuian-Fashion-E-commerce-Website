@@ -171,53 +171,38 @@ exports.updatePassword = async (req, res, next) => {
 // @desc    Admin login
 // @route   POST /api/admin/auth/login
 // @access  Public
-exports.adminLogin = async (req, res, next) => {
+exports.adminLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Validate email & password
-    if (!email || !password) {
-      return next(new ErrorResponse('Please provide email and password', 400));
+    // Find admin
+    const admin = await User.findOne({ email, role: 'admin' });
+    if (!admin) {
+      return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Check for user (include password for comparison)
-    const user = await User.findOne({ email }).select('+password');
-
-    if (!user) {
-      return next(new ErrorResponse('Invalid credentials', 401));
-    }
-
-    // Check if password matches
-    const isMatch = await user.matchPassword(password);
-
+    // Check password
+    const isMatch = await admin.matchPassword(password);
     if (!isMatch) {
-      return next(new ErrorResponse('Invalid credentials', 401));
+      return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Check if user is admin
-    if (user.role !== 'admin') {
-      return next(new ErrorResponse('Access denied. Admin privileges required.', 403));
-    }
-
-    // Generate token
-    const token = user.getSignedJwtToken();
+    // Create token
+    const token = admin.getSignedJwtToken();
 
     res.status(200).json({
       success: true,
-      message: 'Admin login successful',
       token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        studentId: user.studentId,
-        university: user.university,
-        role: user.role
+      admin: {
+        id: admin._id,
+        name: admin.name,
+        email: admin.email,
+        role: admin.role
       }
     });
   } catch (error) {
-    next(error);
+    console.error('Admin login error:', error);
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
