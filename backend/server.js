@@ -11,6 +11,7 @@ const app = express();
 app.use(cors({
   origin: [
     'https://dbuianfashion.vercel.app',   // your deployed frontend
+    'https://dbuianfashion-admin.vercel.app',  // admin panel
     'http://localhost:5173'               // optional for local testing
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
