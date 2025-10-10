@@ -5,12 +5,16 @@ const cors = require('cors');
 const path = require('path');
 require('dotenv').config();
 
-const app = express();
+const app = express(); 
 
 // Basic CORS - keep it simple
 app.use(cors({
-  origin: ['https://dbuianfashion.onrender.com/'
-    ,'https://dbuianfashion.vercel.app/'
+  origin: [
+    'http://localhost:5000',                   
+    'http://localhost:5173',
+    'http://localhost:5173',
+    'https://dbuianfashion.onrender.com/',
+    'https://dbuianfashion.vercel.app/'
   ], // deployed  URL
   credentials: true
 }));
