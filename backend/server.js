@@ -9,7 +9,9 @@ const app = express();
 
 // Basic CORS - keep it simple
 app.use(cors({
-  origin: ['https://dbuianfashion.onrender.com/'], // deployed frontend URL
+  origin: ['https://dbuianfashion.onrender.com/'
+    ,'https://dbuianfashion.vercel.app/'
+  ], // deployed  URL
   credentials: true
 }));
 
