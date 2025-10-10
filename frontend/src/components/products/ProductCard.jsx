@@ -14,19 +14,77 @@ const ProductCard = ({ product, layout = 'grid' }) => {
   // Use _id for MongoDB or id for local data
   const productId = product._id || product.id;
 
-  // Get the first image from the images array
+  // Enhanced image handling with debugging
   const getProductImage = () => {
-    if (product.images && product.images.length > 0) {
-      const firstImage = product.images[0];
-      return getImageUrl(
-        typeof firstImage === 'string' ? firstImage : firstImage.url
-      );
+    console.log('🖼️ Product image data for:', product.name, {
+      images: product.images,
+      firstImage: product.images?.[0],
+      type: typeof product.images?.[0]
+    });
+
+    if (!product.images || product.images.length === 0) {
+      console.log('❌ No images found for product:', product.name);
+      return null;
     }
-    // Fallback to product.image if images array doesn't exist
-    return product.image || null;
+
+    const firstImage = product.images[0];
+    
+    // Handle different image formats
+    let imageSource;
+    if (typeof firstImage === 'string') {
+      imageSource = firstImage;
+    } else if (firstImage && firstImage.url) {
+      imageSource = firstImage.url;
+    } else if (firstImage && firstImage.secure_url) {
+      imageSource = firstImage.secure_url;
+    } else {
+      console.log('❌ Unknown image format:', firstImage);
+      return null;
+    }
+
+    const finalUrl = getImageUrl(imageSource);
+    console.log('🖼️ Final image URL:', finalUrl);
+    return finalUrl;
   };
 
   const productImage = getProductImage();
+
+  // Test image loading
+  React.useEffect(() => {
+    if (productImage) {
+      const img = new Image();
+      img.onload = () => console.log('✅ Image preloaded successfully:', productImage);
+      img.onerror = () => console.log('❌ Image failed to preload:', productImage);
+      img.src = productImage;
+    }
+  }, [productImage]);
+
+  const ImageWithFallback = ({ src, alt, className, fallbackClassName }) => {
+    const [imgError, setImgError] = React.useState(false);
+
+    const handleError = () => {
+      console.log('❌ Image error in component:', src);
+      setImgError(true);
+    };
+
+    if (imgError || !src) {
+      return (
+        <div className={`flex items-center justify-center bg-white/5 ${fallbackClassName}`}>
+          <Package className="w-8 h-8 text-gray-500" />
+        </div>
+      );
+    }
+
+    return (
+      <img
+        src={src}
+        alt={alt}
+        className={className}
+        onError={handleError}
+        onLoad={() => console.log('✅ Image loaded in component:', src)}
+      />
+    );
+  };
 
   if (layout === 'list') {
     return (
@@ -42,21 +100,12 @@ const ProductCard = ({ product, layout = 'grid' }) => {
             <div className="flex flex-col md:flex-row gap-4">
               <div className="md:w-1/4">
                 <div className="relative overflow-hidden rounded-xl bg-white/5">
-                  {productImage ? (
-                    <img
-                      src={productImage}
-                      alt={product.name}
-                      className="w-full h-48 md:h-32 object-cover transition-transform duration-500 hover:scale-105"
-                      onError={(e) => {
-                        console.error('Image failed to load:', productImage);
-                        e.target.style.display = 'none';
-                      }}
-                    />
-                  ) : (
-                    <div className="w-full h-48 md:h-32 flex items-center justify-center">
-                      <Package className="w-12 h-12 text-gray-500" />
-                    </div>
-                  )}
+                  <ImageWithFallback
+                    src={productImage}
+                    alt={product.name}
+                    className="w-full h-48 md:h-32 object-cover transition-transform duration-500 hover:scale-105"
+                    fallbackClassName="w-full h-48 md:h-32"
+                  />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300" />
                 </div>
               </div>
@@ -108,22 +157,14 @@ const ProductCard = ({ product, layout = 'grid' }) => {
     >
       <GlassCard className="h-full overflow-hidden group backdrop-blur-xl border border-white/10 hover:border-cyan-500/30 transition-all duration-300">
         <Link to={`/product/${productId}`}>
-          <div className="relative overflow-hidden">
-            {productImage ? (
-              <img
-                src={productImage}
-                alt={product.name}
-                className="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-110"
-                onError={(e) => {
-                  console.error('Image failed to load:', productImage);
-                  e.target.style.display = 'none';
-                }}
-              />
-            ) : (
-              <div className="w-full h-64 bg-white/5 flex items-center justify-center">
-                <Package className="w-16 h-16 text-gray-500" />
-              </div>
-            )}
+          <div className="relative overflow-hidden bg-white/5">
+            <ImageWithFallback
+              src={productImage}
+              alt={product.name}
+              className="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-110"
+              fallbackClassName="w-full h-64"
+            />
+            
             <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             
             {/* Gender badge */}
