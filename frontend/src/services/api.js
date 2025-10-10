@@ -1,11 +1,25 @@
 // src/services/api.js
 import axios from 'axios';
-const API_URL = process.env.REACT_APP_API_URL;
+
+// Determine the correct API URL
+const getAPIBaseURL = () => {
+  // For production (Vercel)
+  if (process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL;
+  }
+  // For development
+  return 'http://localhost:5000';
+};
+
+const API_BASE_URL = getAPIBaseURL();
+
+console.log('🔧 API Base URL:', API_BASE_URL); // Debug log
 
 // Create axios instance with base configuration
 const api = axios.create({
-  baseURL:  API_URL,
-  timeout: 30000, // Increased timeout
+  baseURL: API_BASE_URL,
+  timeout: 30000,
+  withCredentials: false, // Set to false for deployed apps
 });
 
 // Request interceptor to add auth token
@@ -14,6 +28,10 @@ api.interceptors.request.use(
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    // Add content type if not set
+    if (!config.headers['Content-Type']) {
+      config.headers['Content-Type'] = 'application/json';
     }
     return config;
   },
@@ -25,113 +43,107 @@ api.interceptors.request.use(
 // Response interceptor to handle errors
 api.interceptors.response.use(
   (response) => {
-    // Handle backend response structure
-    if (response.data && response.data.success !== undefined) {
-      return {
-        ...response,
-        data: response.data.data || response.data // Normalize response
-      };
-    }
     return response;
   },
   (error) => {
-    console.error('API Error:', error.response?.data || error.message);
-    
-    if (error.response?.status === 401) {
-      // Token expired or invalid
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
-    }
-    
-    // Return a consistent error structure
-    return Promise.reject({
-      message: error.response?.data?.message || 'Network error occurred',
+    console.error('API Error:', {
+      message: error.message,
       status: error.response?.status,
+      url: error.config?.url,
       data: error.response?.data
     });
+    
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      // Don't redirect automatically in production, let components handle it
+      console.log('Authentication failed');
+    }
+    
+    if (error.code === 'NETWORK_ERROR' || error.message === 'Network Error') {
+      console.error('Network error - check if backend is running');
+    }
+    
+    return Promise.reject(error);
   }
 );
 
-// Auth API - Updated to match backend
-export const authAPI = {
-  login: (credentials) => api.post('/auth/login', credentials),
-  register: (userData) => api.post('/auth/register', userData),
-  getMe: () => api.get('/auth/me'),
-  updateDetails: (userData) => api.put('/auth/updatedetails', userData),
-  updatePassword: (passwordData) => api.put('/auth/updatepassword', passwordData),
+// Health check function
+export const testConnection = async () => {
+  try {
+    console.log('Testing connection to:', API_BASE_URL);
+    const response = await api.get('/api/health');
+    console.log('✅ Backend connection successful');
+    return response.data;
+  } catch (error) {
+    console.error('❌ Backend connection failed:', error.message);
+    throw error;
+  }
 };
 
-// Admin Auth API
-export const adminAuthAPI = {
-  login: (credentials) => api.post('/admin/auth/login', credentials),
-  getMe: () => api.get('/admin/auth/me'),
-};
-
-// Products API - Updated to handle backend response structure
+// Products API - Simplified
 export const productsAPI = {
   getAll: async (params = {}) => {
     try {
-      // Convert frontend filter names to backend expected names
-      const backendParams = {
-        ...params,
-        priceMin: params.priceRange?.min,
-        priceMax: params.priceRange?.max,
-        search: params.search,
-        category: params.category === 'all' ? '' : params.category,
-        gender: params.gender === 'all' ? '' : params.gender,
-        size: params.size === 'all' ? '' : params.size,
-        sort: params.sort || 'newest',
-        page: params.page || 1,
-        limit: params.limit || 12
-      };
+      console.log('Fetching products from:', `${API_BASE_URL}/api/products`);
       
-      // Remove undefined parameters
-      Object.keys(backendParams).forEach(key => {
-        if (backendParams[key] === undefined || backendParams[key] === '') {
-          delete backendParams[key];
-        }
-      });
+      const response = await api.get('/api/products', { params });
       
-      const response = await api.get('/products', { params: backendParams });
+      // Handle different response structures
+      let products = [];
+      if (response.data.products) {
+        products = response.data.products;
+      } else if (Array.isArray(response.data)) {
+        products = response.data;
+      } else {
+        products = [response.data];
+      }
       
-      // Handle backend response structure
       return {
         data: {
-          products: response.data.products || response.data,
-          count: response.data.count,
-          total: response.data.total,
+          products,
+          count: response.data.count || products.length,
+          total: response.data.total || products.length,
           success: true
         }
       };
     } catch (error) {
       console.error('Error fetching products:', error);
+      // Return empty data instead of throwing to prevent UI crashes
+      return {
+        data: {
+          products: [],
+          count: 0,
+          total: 0,
+          success: false,
+          error: error.message
+        }
+      };
+    }
+  },
+  
+  getById: async (id) => {
+    try {
+      const response = await api.get(`/api/products/${id}`);
+      return {
+        data: {
+          product: response.data.product || response.data,
+          success: true
+        }
+      };
+    } catch (error) {
+      console.error('Error fetching product:', error);
       throw error;
     }
   },
   
-getById: async (id) => {
-  try {
-    const response = await api.get(`/products/${id}`);
-    return {
-      data: {
-        product: response.data.product || response.data,
-        success: true
-      }
-    };
-  } catch (error) {
-    console.error('Error fetching product:', error);
-    throw error;
-  }
-},
-  
-  create: (productData) => api.post('/products', productData),
-  update: (id, productData) => api.put(`/products/${id}`, productData),
-  delete: (id) => api.delete(`/products/${id}`),
+  create: (productData) => api.post('/api/products', productData),
+  update: (id, productData) => api.put(`/api/products/${id}`, productData),
+  delete: (id) => api.delete(`/api/products/${id}`),
   
   getFeatured: async () => {
     try {
-      const response = await api.get('/products/featured');
+      const response = await api.get('/api/products/featured');
       return {
         data: {
           products: response.data.products || response.data,
@@ -141,13 +153,13 @@ getById: async (id) => {
       };
     } catch (error) {
       console.error('Error fetching featured products:', error);
-      throw error;
+      return { data: { products: [], count: 0, success: false } };
     }
   },
   
   getTrending: async () => {
     try {
-      const response = await api.get('/products/trending');
+      const response = await api.get('/api/products/trending');
       return {
         data: {
           products: response.data.products || response.data,
@@ -157,78 +169,89 @@ getById: async (id) => {
       };
     } catch (error) {
       console.error('Error fetching trending products:', error);
-      throw error;
+      return { data: { products: [], count: 0, success: false } };
     }
   },
   
-  getByCategory: (category) => api.get(`/products/category/${category}`),
-  updateStock: (id, stock) => api.put(`/products/${id}/stock`, { stock }),
+  getByCategory: (category) => api.get(`/api/products/category/${category}`),
+  updateStock: (id, stock) => api.put(`/api/products/${id}/stock`, { stock }),
 };
 
-// Orders API - Updated
+// Orders API
 export const ordersAPI = {
-  getAll: (params = {}) => api.get('/orders', { params }),
-  getById: (id) => api.get(`/orders/${id}`),
-  create: (orderData) => api.post('/orders', orderData),
-  updateStatus: (id, status) => api.put(`/orders/${id}/status`, { status }),
-  getUserOrders: () => api.get('/orders/myorders'),
-  delete: (id) => api.delete(`/orders/${id}`),
+  getAll: (params = {}) => api.get('/api/orders', { params }),
+  getById: (id) => api.get(`/api/orders/${id}`),
+  create: (orderData) => api.post('/api/orders', orderData),
+  updateStatus: (id, status) => api.put(`/api/orders/${id}/status`, { status }),
+  getUserOrders: () => api.get('/api/orders/myorders'),
+  delete: (id) => api.delete(`/api/orders/${id}`),
 };
 
-// Users API
-export const usersAPI = {
-  getAll: (params = {}) => api.get('/users', { params }),
-  getById: (id) => api.get(`/users/${id}`),
-  update: (id, userData) => api.put(`/users/${id}`, userData),
-  delete: (id) => api.delete(`/users/${id}`),
-  getStats: () => api.get('/users/stats'),
+// Auth API
+export const authAPI = {
+  login: (credentials) => api.post('/api/auth/login', credentials),
+  register: (userData) => api.post('/api/auth/register', userData),
+  getMe: () => api.get('/api/auth/me'),
+  updateDetails: (userData) => api.put('/api/auth/updatedetails', userData),
+  updatePassword: (passwordData) => api.put('/api/auth/updatepassword', passwordData),
 };
 
-// Reviews API
-export const reviewsAPI = {
-  getAll: (params = {}) => api.get('/reviews', { params }),
-  getByProduct: (productId) => api.get(`/reviews/product/${productId}`),
-  create: (reviewData) => api.post('/reviews', reviewData),
-  update: (id, reviewData) => api.put(`/reviews/${id}`, reviewData),
-  delete: (id) => api.delete(`/reviews/${id}`),
-  getMyReviews: () => api.get('/reviews/my-reviews'),
+// Admin Auth API
+export const adminAuthAPI = {
+  login: (credentials) => api.post('/api/admin/auth/login', credentials),
+  getMe: () => api.get('/api/admin/auth/me'),
 };
 
 // Upload API
 export const uploadAPI = {
-  uploadImage: (formData) => api.post('/upload', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
+  uploadImage: (formData) => api.post('/api/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 60000
   }),
-  uploadMultiple: (formData) => api.post('/upload/multiple', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
+  uploadMultiple: (formData) => api.post('/api/upload/multiple', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 60000
   }),
-  deleteImage: (publicId) => api.delete(`/upload/${publicId}`),
+  deleteImage: (publicId) => api.delete(`/api/upload/${publicId}`),
 };
 
 // Helper function to get full image URL
 export const getImageUrl = (imagePath) => {
-  if (!imagePath) return '/images/placeholder.jpg';
+  if (!imagePath) {
+    return '/images/placeholder.jpg';
+  }
   
+  console.log('Processing image path:', imagePath);
+  
+  // If it's already a full URL, return as is
   if (imagePath.startsWith('http')) {
     return imagePath;
   }
   
+  // If it's a Cloudinary URL, return as is
+  if (imagePath.includes('cloudinary.com')) {
+    return imagePath;
+  }
+  
+  // Handle mock images
   if (imagePath.startsWith('/api/mock-images/')) {
-    return `${baseURL}${imagePath}`;
+    return `${API_BASE_URL}${imagePath}`;
   }
   
+  if (imagePath.includes('mock_')) {
+    return `${API_BASE_URL}/api/mock-images/${imagePath}`;
+  }
+  
+  // Handle uploads
   if (imagePath.startsWith('/uploads/')) {
-    return `${baseURL}${imagePath}`;
+    return `${API_BASE_URL}${imagePath}`;
   }
   
-  // Handle Cloudinary URLs and other cases
-  return imagePath;
+  // Default case
+  return `${API_BASE_URL}/uploads/${imagePath}`;
 };
 
 // Health check
-export const healthCheck = () => api.get('/health');
-
-// Test endpoint
-export const testAPI = () => api.get('/test');
+export const healthCheck = () => api.get('/api/health');
 
 export default api;
