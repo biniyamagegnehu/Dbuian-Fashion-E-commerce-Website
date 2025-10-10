@@ -7,15 +7,14 @@ require('dotenv').config();
 
 const app = express(); 
 
-// Basic CORS - keep it simple
+// ✅ Allow your frontend domain
 app.use(cors({
   origin: [
-    'http://localhost:5000',                   
-    'http://localhost:5173',
-    'http://localhost:5173',
-    'https://dbuianfashion.onrender.com/',
-    'https://dbuianfashion.vercel.app/'
-  ], // deployed  URL
+    'https://dbuianfashion.vercel.app',   // your deployed frontend
+    'http://localhost:5173'               // optional for local testing
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
 
