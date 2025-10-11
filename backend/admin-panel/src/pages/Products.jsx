@@ -566,7 +566,7 @@ const handleImageUpload = async (e) => {
               <span>Add Your First Product</span>
             </button>
           </div>
-        )}
+        )
       </div>
 
       {/* Add/Edit Product Modal */}
