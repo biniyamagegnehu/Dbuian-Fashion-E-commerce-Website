@@ -11,20 +11,38 @@ const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
+// In your Login component - UPDATED handleSubmit function
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setLoading(true);
+  setError('');
 
-    try {
-      await login(credentials);
-      navigate('/');
-    } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Login failed');
-    } finally {
-      setLoading(false);
+  try {
+    console.log('🔄 Starting login process...');
+    await login(credentials);
+    console.log('✅ Login successful, navigating...');
+    navigate('/admin/dashboard'); // Changed to admin dashboard
+  } catch (err) {
+    console.error('❌ Login failed:', {
+      message: err.message,
+      status: err.response?.status,
+      data: err.response?.data
+    });
+    
+    // More specific error messages
+    if (err.response?.status === 401) {
+      setError('Invalid email or password');
+    } else if (err.response?.status === 404) {
+      setError('Admin login endpoint not found. Please check backend configuration.');
+    } else if (err.response?.status === 500) {
+      setError('Server error. Please try again later.');
+    } else {
+      setError(err.response?.data?.message || err.message || 'Login failed. Please check your connection.');
     }
-  };
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-gray-900 via-purple-900 to-cyan-900 relative overflow-hidden">
