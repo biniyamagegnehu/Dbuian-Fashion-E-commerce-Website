@@ -11,7 +11,7 @@ const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-// In your Login component - UPDATED handleSubmit function
+  // In your Login component - UPDATED
 const handleSubmit = async (e) => {
   e.preventDefault();
   setLoading(true);
@@ -19,25 +19,33 @@ const handleSubmit = async (e) => {
 
   try {
     console.log('🔄 Starting login process...');
-    await login(credentials);
-    console.log('✅ Login successful, navigating...');
-    navigate('/admin/dashboard'); // Changed to admin dashboard
-  } catch (err) {
-    console.error('❌ Login failed:', {
-      message: err.message,
-      status: err.response?.status,
-      data: err.response?.data
-    });
+    console.log('📧 Email:', credentials.email);
+    console.log('🔗 Sending to:', 'https://dbuianfashion.onrender.com/api/admin/auth/login');
     
-    // More specific error messages
+    const response = await login(credentials);
+    console.log('✅ Login successful:', response);
+    
+    navigate('/admin/dashboard');
+  } catch (err) {
+    console.error('❌ Login failed - Full error:', err);
+    console.error('❌ Response data:', err.response?.data);
+    console.error('❌ Response status:', err.response?.status);
+    
+    if (err.response?.data?.error) {
+      console.error('❌ Backend error details:', err.response.data.error);
+    }
+    
+    // More specific error handling
     if (err.response?.status === 401) {
-      setError('Invalid email or password');
+      setError('Invalid email or password. Please check your credentials.');
     } else if (err.response?.status === 404) {
-      setError('Admin login endpoint not found. Please check backend configuration.');
+      setError('Admin login service not available. Please contact support.');
     } else if (err.response?.status === 500) {
-      setError('Server error. Please try again later.');
+      setError('Server error: ' + (err.response?.data?.message || 'Please try again later.'));
+    } else if (err.code === 'NETWORK_ERROR') {
+      setError('Network error. Please check your internet connection.');
     } else {
-      setError(err.response?.data?.message || err.message || 'Login failed. Please check your connection.');
+      setError(err.response?.data?.message || err.message || 'Login failed. Please try again.');
     }
   } finally {
     setLoading(false);

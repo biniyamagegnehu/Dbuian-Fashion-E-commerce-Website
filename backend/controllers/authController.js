@@ -168,6 +168,7 @@ exports.updatePassword = async (req, res, next) => {
   }
 };
 
+// FIXED adminLogin
 // @desc    Admin login
 // @route   POST /api/admin/auth/login
 // @access  Public
@@ -175,34 +176,60 @@ exports.adminLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Find admin
-    const admin = await User.findOne({ email, role: 'admin' });
+    console.log('🔐 Admin login attempt:', { email });
+
+    // Validate input
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide email and password'
+      });
+    }
+
+    // Find admin user - include password for comparison
+    const admin = await User.findOne({ email, role: 'admin' }).select('+password');
+    
     if (!admin) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      console.log('❌ Admin not found:', email);
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid credentials'
+      });
     }
 
     // Check password
     const isMatch = await admin.matchPassword(password);
     if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      console.log('❌ Invalid password for admin:', email);
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid credentials'
+      });
     }
 
-    // Create token
+    // Generate token
     const token = admin.getSignedJwtToken();
+
+    console.log('✅ Admin login successful:', admin.email);
 
     res.status(200).json({
       success: true,
       token,
-      admin: {
+      user: {
         id: admin._id,
         name: admin.name,
         email: admin.email,
         role: admin.role
       }
     });
+
   } catch (error) {
-    console.error('Admin login error:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('💥 Admin login error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during login',
+      error: error.message
+    });
   }
 };
 
