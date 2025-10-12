@@ -494,32 +494,62 @@ const handleImageUpload = async (e) => {
             {filteredProducts.map(product => (
               <div key={product._id} className="glass-card p-4 hover:transform hover:scale-105 transition-all duration-300 group">
                 <div className="relative">
-<div className="w-full h-48 bg-white/5 rounded-lg mb-4 flex items-center justify-center overflow-hidden">
-  {product.images && product.images.length > 0 ? (
-    <img 
-      src={getImageUrl(
-        typeof product.images[0] === 'string' 
-          ? product.images[0] 
-          : product.images[0].url
-      )} 
-      alt={product.name}
-      className="w-full h-full object-cover rounded-lg group-hover:scale-110 transition-transform duration-300"
-      onError={(e) => {
-        // Fallback if image fails to load
-        e.target.style.display = 'none';
-        e.target.nextSibling.style.display = 'flex';
-      }}
-    />
-  ) : (
-    <Package className="w-12 h-12 text-gray-500" />
-  )}
-  {/* Fallback display */}
-  {product.images && product.images.length > 0 && (
-    <div className="hidden w-full h-full items-center justify-center bg-white/5">
-      <Package className="w-12 h-12 text-gray-500" />
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+  {filteredProducts.map(product => (
+    <div key={product._id} className="glass-card p-4 hover:transform hover:scale-105 transition-all duration-300 group">
+      <div className="relative">
+        <div className="w-full h-48 bg-white/5 rounded-lg mb-4 flex items-center justify-center overflow-hidden">
+          {product.images && product.images.length > 0 ? (
+            <img 
+              src={getImageUrl(product.images[0])} 
+              alt={product.name}
+              className="w-full h-full object-cover rounded-lg group-hover:scale-110 transition-transform duration-300"
+              onError={(e) => {
+                console.error('❌ Product image failed to load:', product.images[0]);
+                e.target.style.display = 'none';
+                // Show fallback
+                const fallback = e.target.nextSibling;
+                if (fallback) fallback.style.display = 'flex';
+              }}
+            />
+          ) : (
+            <Package className="w-12 h-12 text-gray-500" />
+          )}
+          {/* Fallback display */}
+          <div className="hidden w-full h-full items-center justify-center bg-white/5">
+            <Package className="w-12 h-12 text-gray-500" />
+          </div>
+        </div>
+        
+        {/* Edit and Delete Buttons */}
+        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex space-x-1">
+          <button
+            onClick={() => openEditModal(product)}
+            className="p-2 bg-blue-500/80 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            title="Edit Product"
+          >
+            <Edit className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => handleDelete(product._id)}
+            className="p-2 bg-red-500/80 text-white rounded-lg hover:bg-red-600 transition-colors"
+            title="Delete Product"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      <h4 className="font-semibold text-white mb-2">{product.name}</h4>
+      <p className="text-cyan-400 font-bold mb-2">ETB {product.price}</p>
+      <div className="flex justify-between items-center text-sm text-gray-400">
+        <span>Stock: {product.stock}</span>
+        <span>{product.category}</span>
+      </div>
     </div>
-  )}
-</div>        
+  ))}
+</div>
+    
                   {/* Edit and Delete Buttons */}
                   <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex space-x-1">
                     <button
@@ -594,12 +624,9 @@ const handleImageUpload = async (e) => {
                 
 {/* Uploaded Images Preview */}
 {formData.images.map((image, index) => {
-  // Get the image URL - handle both object and string formats
-  const imageUrl = getImageUrl(
-    typeof image === 'string' ? image : (image.url || image.secure_url)
-  );
+  const imageUrl = getImageUrl(image);
   
-  console.log(`Preview image ${index}:`, { image, imageUrl });
+  console.log(`🖼️ Admin Preview image ${index}:`, { image, imageUrl });
 
   return (
     <div key={index} className="relative group mb-4">
@@ -608,9 +635,9 @@ const handleImageUpload = async (e) => {
           src={imageUrl}
           alt={`Product ${index + 1}`}
           className="w-full h-full object-cover"
-          onLoad={() => console.log(`✅ Preview image ${index} loaded successfully`)}
+          onLoad={() => console.log(`✅ Admin Preview image ${index} loaded successfully`)}
           onError={(e) => {
-            console.error(`❌ Preview image ${index} failed to load:`, imageUrl);
+            console.error(`❌ Admin Preview image ${index} failed to load:`, imageUrl);
             e.target.style.display = 'none';
             // Show fallback
             const fallback = e.target.parentNode.querySelector('.image-fallback');
@@ -620,7 +647,7 @@ const handleImageUpload = async (e) => {
         {/* Fallback */}
         <div className="image-fallback hidden w-full h-full items-center justify-center absolute inset-0 bg-white/5">
           <Image className="w-8 h-8 text-gray-500" />
-          <span className="text-xs text-gray-400 ml-2">Loading...</span>
+          <span className="text-xs text-gray-400 ml-2">Failed to load</span>
         </div>
       </div>
       
@@ -920,7 +947,7 @@ const handleImageUpload = async (e) => {
           </div>
         </div>
       )}
-    </div>
+    </div>  
   );
 };
 

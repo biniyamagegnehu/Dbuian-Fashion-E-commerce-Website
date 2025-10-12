@@ -217,33 +217,28 @@ export const uploadAPI = {
 // src/services/api.js - ENHANCED getImageUrl
 export const getImageUrl = (imagePath) => {
   if (!imagePath) {
-    console.log('🖼️ No image path provided');
+    console.log('🖼️ Main Website: No image path provided');
     return '/images/placeholder.jpg';
   }
 
-  console.log('🖼️ Processing image:', imagePath, 'Type:', typeof imagePath);
+  console.log('🖼️ Main Website Processing:', imagePath, 'Type:', typeof imagePath);
 
   // Handle object format
   if (typeof imagePath === 'object' && imagePath !== null) {
-    console.log('🖼️ Image is object with keys:', Object.keys(imagePath));
+    console.log('🖼️ Main Website: Image is object with keys:', Object.keys(imagePath));
     
     // Priority order for object URLs
     if (imagePath.secure_url) {
-      console.log('🖼️ Using secure_url:', imagePath.secure_url);
+      console.log('🖼️ Main Website: Using secure_url:', imagePath.secure_url);
       return imagePath.secure_url;
     }
     if (imagePath.url) {
-      console.log('🖼️ Using url:', imagePath.url);
+      console.log('🖼️ Main Website: Using url:', imagePath.url);
       // Recursively process the URL string
       return getImageUrl(imagePath.url);
     }
-    if (imagePath.public_id) {
-      // This is a Cloudinary public_id, not a URL
-      console.log('🖼️ Cloudinary public_id found:', imagePath.public_id);
-      return '/images/placeholder.jpg';
-    }
     
-    console.log('🖼️ Unknown object format, using placeholder');
+    console.log('🖼️ Main Website: Unknown object format, using placeholder');
     return '/images/placeholder.jpg';
   }
 
@@ -251,13 +246,13 @@ export const getImageUrl = (imagePath) => {
   if (typeof imagePath === 'string') {
     // Already a full URL
     if (imagePath.startsWith('http')) {
-      console.log('🖼️ Already full URL:', imagePath);
+      console.log('🖼️ Main Website: Already full URL:', imagePath);
       return imagePath;
     }
 
     // Cloudinary URL
     if (imagePath.includes('cloudinary.com')) {
-      console.log('🖼️ Cloudinary URL:', imagePath);
+      console.log('🖼️ Main Website: Cloudinary URL:', imagePath);
       return imagePath;
     }
 
@@ -265,17 +260,16 @@ export const getImageUrl = (imagePath) => {
     if (imagePath.includes('mock_') || imagePath.startsWith('/api/mock-images/')) {
       let cleanPath = imagePath;
       
-      // Remove leading slash if present but not part of /api/mock-images/
-      if (cleanPath.startsWith('/api/mock-images/')) {
-        // Keep as is - it's the correct format
-      } else if (cleanPath.startsWith('api/mock-images/')) {
+      if (imagePath.startsWith('/api/mock-images/')) {
+        // Keep as is
+      } else if (imagePath.startsWith('api/mock-images/')) {
         cleanPath = '/' + cleanPath;
-      } else if (cleanPath.includes('mock_')) {
+      } else if (imagePath.includes('mock_')) {
         cleanPath = `/api/mock-images/${cleanPath}`;
       }
       
       const fullUrl = `https://dbuianfashion.onrender.com${cleanPath}`;
-      console.log('🖼️ Constructed mock URL:', fullUrl);
+      console.log('🖼️ Main Website: Constructed mock URL:', fullUrl);
       return fullUrl;
     }
 
@@ -283,20 +277,20 @@ export const getImageUrl = (imagePath) => {
     if (imagePath.startsWith('/uploads/') || imagePath.startsWith('uploads/')) {
       const cleanPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
       const fullUrl = `https://dbuianfashion.onrender.com${cleanPath}`;
-      console.log('🖼️ Constructed upload URL:', fullUrl);
+      console.log('🖼️ Main Website: Constructed upload URL:', fullUrl);
       return fullUrl;
     }
 
     // If it's just a filename with extension, assume it's a mock image
     if (imagePath.match(/\.(jpg|jpeg|png|webp|gif)$/i)) {
       const fullUrl = `https://dbuianfashion.onrender.com/api/mock-images/${imagePath}`;
-      console.log('🖼️ Constructed filename URL:', fullUrl);
+      console.log('🖼️ Main Website: Constructed filename URL:', fullUrl);
       return fullUrl;
     }
   }
 
   // Unknown format
-  console.log('🖼️ Unknown image format, using placeholder');
+  console.log('🖼️ Main Website: Unknown image format, using placeholder');
   return '/images/placeholder.jpg';
 };
 
