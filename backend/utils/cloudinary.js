@@ -1,4 +1,4 @@
-// backend/utils/cloudinary.js
+// backend/utils/cloudinary.js - UPDATED
 const cloudinary = require('../config/cloudinary');
 const path = require('path');
 const fs = require('fs');
@@ -8,6 +8,12 @@ const mockStorageDir = path.join(__dirname, '../temp_uploads');
 if (!fs.existsSync(mockStorageDir)) {
   fs.mkdirSync(mockStorageDir, { recursive: true });
 }
+
+// ✅ FIXED: Always use production URL for mock images
+const getBackendUrl = () => {
+  // Use production URL in all environments
+  return 'https://dbuianfashion.onrender.com';
+};
 
 // Mock upload function that stores actual images
 const mockUploadImage = async (file, folder = 'dbuian_fashion') => {
@@ -21,10 +27,10 @@ const mockUploadImage = async (file, folder = 'dbuian_fashion') => {
   
   fs.writeFileSync(filePath, file.buffer);
   
-  // Return full backend URL
-  const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+  // ✅ FIXED: Always use production URL
+  const backendUrl = getBackendUrl();
   const mockResponse = {
-    secure_url: `${backendUrl}/api/mock-images/${uniqueFilename}`, // Full backend URL
+    secure_url: `${backendUrl}/api/mock-images/${uniqueFilename}`,
     public_id: `mock_${uniqueFilename}`,
     bytes: file.size,
     format: file.mimetype.split('/')[1] || 'jpg',
