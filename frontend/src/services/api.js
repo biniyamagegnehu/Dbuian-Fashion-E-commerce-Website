@@ -214,66 +214,89 @@ export const uploadAPI = {
   deleteImage: (publicId) => api.delete(`/api/upload/${publicId}`),
 };
 
-// src/services/api.js - UPDATED getImageUrl function
+// src/services/api.js - ENHANCED getImageUrl
 export const getImageUrl = (imagePath) => {
   if (!imagePath) {
     console.log('🖼️ No image path provided');
     return '/images/placeholder.jpg';
   }
 
-  console.log('🖼️ Original image path:', imagePath, 'Type:', typeof imagePath);
+  console.log('🖼️ Processing image:', imagePath, 'Type:', typeof imagePath);
 
-  // If it's already a full URL, return as is
-  if (imagePath.startsWith('http')) {
-    console.log('🖼️ Already full URL:', imagePath);
-    return imagePath;
-  }
-
-  // If it's a Cloudinary URL, return as is
-  if (imagePath.includes('cloudinary.com')) {
-    console.log('🖼️ Cloudinary URL:', imagePath);
-    return imagePath;
-  }
-
-  // Handle object format { url: '...', public_id: '...' }
+  // Handle object format
   if (typeof imagePath === 'object' && imagePath !== null) {
-    console.log('🖼️ Image is an object:', imagePath);
-    if (imagePath.url) {
-      return getImageUrl(imagePath.url); // Recursively process the URL
-    } else if (imagePath.secure_url) {
+    console.log('🖼️ Image is object with keys:', Object.keys(imagePath));
+    
+    // Priority order for object URLs
+    if (imagePath.secure_url) {
+      console.log('🖼️ Using secure_url:', imagePath.secure_url);
       return imagePath.secure_url;
-    } else {
-      console.log('🖼️ Unknown image object format:', imagePath);
+    }
+    if (imagePath.url) {
+      console.log('🖼️ Using url:', imagePath.url);
+      // Recursively process the URL string
+      return getImageUrl(imagePath.url);
+    }
+    if (imagePath.public_id) {
+      // This is a Cloudinary public_id, not a URL
+      console.log('🖼️ Cloudinary public_id found:', imagePath.public_id);
       return '/images/placeholder.jpg';
     }
+    
+    console.log('🖼️ Unknown object format, using placeholder');
+    return '/images/placeholder.jpg';
   }
 
   // Handle string paths
   if (typeof imagePath === 'string') {
-    // If it starts with /api/mock-images/, construct full URL
-    if (imagePath.startsWith('/api/mock-images/')) {
-      const fullUrl = `https://dbuianfashion.onrender.com${imagePath}`;
-      console.log('🖼️ Constructed mock image URL:', fullUrl);
+    // Already a full URL
+    if (imagePath.startsWith('http')) {
+      console.log('🖼️ Already full URL:', imagePath);
+      return imagePath;
+    }
+
+    // Cloudinary URL
+    if (imagePath.includes('cloudinary.com')) {
+      console.log('🖼️ Cloudinary URL:', imagePath);
+      return imagePath;
+    }
+
+    // Mock images - handle different formats
+    if (imagePath.includes('mock_') || imagePath.startsWith('/api/mock-images/')) {
+      let cleanPath = imagePath;
+      
+      // Remove leading slash if present but not part of /api/mock-images/
+      if (cleanPath.startsWith('/api/mock-images/')) {
+        // Keep as is - it's the correct format
+      } else if (cleanPath.startsWith('api/mock-images/')) {
+        cleanPath = '/' + cleanPath;
+      } else if (cleanPath.includes('mock_')) {
+        cleanPath = `/api/mock-images/${cleanPath}`;
+      }
+      
+      const fullUrl = `https://dbuianfashion.onrender.com${cleanPath}`;
+      console.log('🖼️ Constructed mock URL:', fullUrl);
       return fullUrl;
     }
 
-    // If it's just a filename, assume it's a mock image
-    if (imagePath.includes('mock_') || imagePath.match(/\.(jpg|jpeg|png|webp|gif)$/i)) {
+    // Uploads
+    if (imagePath.startsWith('/uploads/') || imagePath.startsWith('uploads/')) {
+      const cleanPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
+      const fullUrl = `https://dbuianfashion.onrender.com${cleanPath}`;
+      console.log('🖼️ Constructed upload URL:', fullUrl);
+      return fullUrl;
+    }
+
+    // If it's just a filename with extension, assume it's a mock image
+    if (imagePath.match(/\.(jpg|jpeg|png|webp|gif)$/i)) {
       const fullUrl = `https://dbuianfashion.onrender.com/api/mock-images/${imagePath}`;
       console.log('🖼️ Constructed filename URL:', fullUrl);
       return fullUrl;
     }
-
-    // If it starts with /uploads/, construct full URL
-    if (imagePath.startsWith('/uploads/')) {
-      const fullUrl = `https://dbuianfashion.onrender.com${imagePath}`;
-      console.log('🖼️ Constructed upload URL:', fullUrl);
-      return fullUrl;
-    }
   }
 
-  // Default fallback
-  console.log('🖼️ Using default handling for:', imagePath);
+  // Unknown format
+  console.log('🖼️ Unknown image format, using placeholder');
   return '/images/placeholder.jpg';
 };
 

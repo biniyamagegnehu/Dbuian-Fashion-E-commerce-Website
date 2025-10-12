@@ -1,3 +1,4 @@
+// src/components/ProductCard.jsx - UPDATED
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -6,17 +7,15 @@ import { getImageUrl } from '../../services/api';
 import { Package } from 'lucide-react';
 
 const ProductCard = ({ product, layout = 'grid' }) => {
-  // Format price in Birr
   const formatPrice = (price) => {
     return `${price} Birr`;
   };
 
-  // Use _id for MongoDB or id for local data
   const productId = product._id || product.id;
 
   // Enhanced image handling with debugging
   const getProductImage = () => {
-    console.log('🖼️ Product image data for:', product.name, {
+    console.log('📦 Product image analysis for:', product.name, {
       images: product.images,
       firstImage: product.images?.[0],
       type: typeof product.images?.[0]
@@ -28,61 +27,53 @@ const ProductCard = ({ product, layout = 'grid' }) => {
     }
 
     const firstImage = product.images[0];
+    const imageUrl = getImageUrl(firstImage);
     
-    // Handle different image formats
-    let imageSource;
-    if (typeof firstImage === 'string') {
-      imageSource = firstImage;
-    } else if (firstImage && firstImage.url) {
-      imageSource = firstImage.url;
-    } else if (firstImage && firstImage.secure_url) {
-      imageSource = firstImage.secure_url;
-    } else {
-      console.log('❌ Unknown image format:', firstImage);
-      return null;
-    }
-
-    const finalUrl = getImageUrl(imageSource);
-    console.log('🖼️ Final image URL:', finalUrl);
-    return finalUrl;
+    console.log('🖼️ Final image URL for', product.name, ':', imageUrl);
+    return imageUrl;
   };
 
   const productImage = getProductImage();
 
-  // Test image loading
-  React.useEffect(() => {
-    if (productImage) {
-      const img = new Image();
-      img.onload = () => console.log('✅ Image preloaded successfully:', productImage);
-      img.onerror = () => console.log('❌ Image failed to preload:', productImage);
-      img.src = productImage;
-    }
-  }, [productImage]);
-
+  // Image component with fallback
   const ImageWithFallback = ({ src, alt, className, fallbackClassName }) => {
     const [imgError, setImgError] = React.useState(false);
+    const [imgLoaded, setImgLoaded] = React.useState(false);
 
     const handleError = () => {
-      console.log('❌ Image error in component:', src);
+      console.error('❌ Image failed to load:', src);
       setImgError(true);
+    };
+
+    const handleLoad = () => {
+      console.log('✅ Image loaded successfully:', src);
+      setImgLoaded(true);
     };
 
     if (imgError || !src) {
       return (
         <div className={`flex items-center justify-center bg-white/5 ${fallbackClassName}`}>
           <Package className="w-8 h-8 text-gray-500" />
+          <span className="text-xs text-gray-400 ml-2">No Image</span>
         </div>
       );
     }
 
     return (
-      <img
-        src={src}
-        alt={alt}
-        className={className}
-        onError={handleError}
-        onLoad={() => console.log('✅ Image loaded in component:', src)}
-      />
+      <div className="relative">
+        <img
+          src={src}
+          alt={alt}
+          className={className}
+          onError={handleError}
+          onLoad={handleLoad}
+        />
+        {!imgLoaded && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white/5">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-cyan-400"></div>
+          </div>
+        )}
+      </div>
     );
   };
 
@@ -99,12 +90,12 @@ const ProductCard = ({ product, layout = 'grid' }) => {
           <Link to={`/product/${productId}`}>
             <div className="flex flex-col md:flex-row gap-4">
               <div className="md:w-1/4">
-                <div className="relative overflow-hidden rounded-xl bg-white/5">
+                <div className="relative overflow-hidden rounded-xl bg-white/5 min-h-[120px]">
                   <ImageWithFallback
                     src={productImage}
                     alt={product.name}
-                    className="w-full h-48 md:h-32 object-cover transition-transform duration-500 hover:scale-105"
-                    fallbackClassName="w-full h-48 md:h-32"
+                    className="w-full h-32 object-cover transition-transform duration-500 hover:scale-105"
+                    fallbackClassName="w-full h-32"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300" />
                 </div>
@@ -128,15 +119,6 @@ const ProductCard = ({ product, layout = 'grid' }) => {
                     <span className="text-sm text-cyan-300/80 bg-cyan-400/10 px-2 py-1 rounded-full">
                       {product.gender} • {product.category}
                     </span>
-                    <div className="flex space-x-1">
-                      {product.colors?.slice(0, 3).map((color, index) => (
-                        <span
-                          key={index}
-                          className="w-3 h-3 rounded-full border border-white/20 shadow-sm"
-                          style={{ backgroundColor: color }}
-                        />
-                      ))}
-                    </div>
                   </div>
                 </div>
               </div>
@@ -147,6 +129,7 @@ const ProductCard = ({ product, layout = 'grid' }) => {
     );
   }
 
+  // Grid layout
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -180,15 +163,6 @@ const ProductCard = ({ product, layout = 'grid' }) => {
                 {product.category}
               </span>
             </div>
-            
-            {/* Featured badge */}
-            {product.featured && (
-              <div className="absolute top-12 left-3">
-                <span className="px-2 py-1 bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs rounded-full backdrop-blur-md border border-orange-400/20">
-                  Featured
-                </span>
-              </div>
-            )}
           </div>
           
           <div className="p-5">
@@ -205,23 +179,6 @@ const ProductCard = ({ product, layout = 'grid' }) => {
               <span className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
                 {formatPrice(product.price)}
               </span>
-              
-              <div className="flex items-center space-x-2">
-                <div className="flex -space-x-1">
-                  {product.colors?.slice(0, 4).map((color, index) => (
-                    <span
-                      key={index}
-                      className="w-4 h-4 rounded-full border-2 border-gray-800 shadow-sm"
-                      style={{ backgroundColor: color }}
-                    />
-                  ))}
-                </div>
-                {product.colors?.length > 4 && (
-                  <span className="text-xs text-cyan-300/70 bg-cyan-400/10 px-1 rounded">
-                    +{product.colors.length - 4}
-                  </span>
-                )}
-              </div>
             </div>
             
             {/* Additional info */}
@@ -240,12 +197,6 @@ const ProductCard = ({ product, layout = 'grid' }) => {
                   {product.stock || 0} in stock
                 </span>
               </div>
-              
-              {product.trending && (
-                <span className="text-xs bg-gradient-to-r from-orange-400 to-red-400 text-white px-2 py-1 rounded-full">
-                  Trending
-                </span>
-              )}
             </div>
           </div>
         </Link>

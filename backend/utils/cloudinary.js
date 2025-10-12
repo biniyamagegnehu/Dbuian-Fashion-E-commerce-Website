@@ -22,7 +22,7 @@ const mockUploadImage = async (file, folder = 'dbuian_fashion') => {
   fs.writeFileSync(filePath, file.buffer);
   
   // Return full backend URL
-  const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+  const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000' ||'https://dbuianfashion.onrender.com/';
   const mockResponse = {
     secure_url: `${backendUrl}/api/mock-images/${uniqueFilename}`, // Full backend URL
     public_id: `mock_${uniqueFilename}`,
