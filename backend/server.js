@@ -22,8 +22,24 @@ app.use(cors({
 // Body parser
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use('/api/mock-images', express.static(path.join(__dirname, 'temp_uploads')));
-
+// Serve mock images with proper CORS and caching headers
+app.use('/api/mock-images', (req, res, next) => {
+  // Set CORS headers for static files
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  
+  // Set caching headers for images
+  res.header('Cache-Control', 'public, max-age=31536000, immutable'); // Cache for 1 year
+  res.header('Expires', new Date(Date.now() + 31536000000).toUTCString()); // 1 year from now
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
+  next();
+}, express.static(path.join(__dirname, 'temp_uploads')));
 
 // Connect to MongoDB
 const connectDB = async () => {

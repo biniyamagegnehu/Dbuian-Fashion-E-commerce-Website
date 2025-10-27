@@ -70,6 +70,20 @@ exports.serveMockImage = (req, res) => {
   const { filename } = req.params;
   const filePath = path.join(mockStorageDir, filename);
   
+  // Set CORS headers
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  
+  // Set caching headers
+  res.header('Cache-Control', 'public, max-age=31536000, immutable');
+  res.header('Expires', new Date(Date.now() + 31536000000).toUTCString());
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
   if (fs.existsSync(filePath)) {
     // Determine content type
     const ext = path.extname(filename).toLowerCase();
@@ -82,6 +96,17 @@ exports.serveMockImage = (req, res) => {
     };
     
     res.setHeader('Content-Type', contentTypes[ext] || 'image/jpeg');
+    
+    // Add ETag for better caching
+    const stats = fs.statSync(filePath);
+    const etag = `"${stats.mtime.getTime()}-${stats.size}"`;
+    res.setHeader('ETag', etag);
+    
+    // Check if client has cached version
+    if (req.headers['if-none-match'] === etag) {
+      return res.status(304).end();
+    }
+    
     res.sendFile(filePath);
   } else {
     res.status(404).json({ error: 'Image not found' });
