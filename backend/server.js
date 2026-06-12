@@ -8,12 +8,20 @@ require('dotenv').config();
 const app = express(); 
 
 // ✅ Allow your frontend domain
+const allowedOrigins = [
+  'https://dbuianfashion.vercel.app',   // your deployed frontend
+  'https://dbuianfashion-admin.vercel.app',  // admin panel
+  'http://localhost:5173',               // local frontend
+  'http://localhost:5174',               // local admin panel
+  'http://localhost:5175'
+];
+
+if (process.env.FRONTEND_URL) {
+  allowedOrigins.push(process.env.FRONTEND_URL);
+}
+
 app.use(cors({
-  origin: [
-    'https://dbuianfashion.vercel.app',   // your deployed frontend
-    'https://dbuianfashion-admin.vercel.app',  // admin panel
-    'http://localhost:5173'               // optional for local testing
-  ],
+  origin: allowedOrigins,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true

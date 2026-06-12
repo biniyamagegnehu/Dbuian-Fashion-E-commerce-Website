@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 // ✅ CORRECT: Remove the extra /api at the end
-const API_BASE_URL = 'https://dbuianfashion.onrender.com';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
 console.log('🚀 Admin Panel API Base URL:', API_BASE_URL);
 
@@ -136,7 +136,7 @@ export const getImageUrl = (imagePath) => {
         cleanPath = `/api/mock-images/${cleanPath}`;
       }
       
-      const fullUrl = `https://dbuianfashion.onrender.com${cleanPath}`;
+      const fullUrl = `${API_BASE_URL}${cleanPath}`;
       console.log('🖼️ Admin Panel: Constructed mock URL:', fullUrl);
       return fullUrl;
     }
@@ -144,14 +144,14 @@ export const getImageUrl = (imagePath) => {
     // Uploads
     if (imagePath.startsWith('/uploads/') || imagePath.startsWith('uploads/')) {
       const cleanPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
-      const fullUrl = `https://dbuianfashion.onrender.com${cleanPath}`;
+      const fullUrl = `${API_BASE_URL}${cleanPath}`;
       console.log('🖼️ Admin Panel: Constructed upload URL:', fullUrl);
       return fullUrl;
     }
 
     // If it's just a filename with extension, assume it's a mock image
     if (imagePath.match(/\.(jpg|jpeg|png|webp|gif)$/i)) {
-      const fullUrl = `https://dbuianfashion.onrender.com/api/mock-images/${imagePath}`;
+      const fullUrl = `${API_BASE_URL}/api/mock-images/${imagePath}`;
       console.log('🖼️ Admin Panel: Constructed filename URL:', fullUrl);
       return fullUrl;
     }
