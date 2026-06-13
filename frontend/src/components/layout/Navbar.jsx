@@ -9,7 +9,7 @@ const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { getCartItemsCount } = useCart();
-  const { user, logout } = useAuth();
+  const { user, isInitialized, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const cartItemsCount = getCartItemsCount();
@@ -31,8 +31,8 @@ const Navbar = () => {
   ];
 
   const handleLogout = () => {
-    logout();
     setIsMenuOpen(false);
+    logout(navigate);
   };
 
   return (
@@ -129,40 +129,54 @@ const Navbar = () => {
               </button>
             </motion.div>
 
-            {/* Auth buttons */}
-            {user ? (
-              <motion.div 
-                className="hidden md:flex items-center space-x-3"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-              >
-                <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 bg-gradient-to-r from-cyan-400 to-purple-500 rounded-full flex items-center justify-center text-xs font-bold text-white">
-                    {user.name.charAt(0)}
+            {/* Auth buttons — hidden while auth is initializing to prevent flicker */}
+            {isInitialized && (
+              <>
+                {user ? (
+                  <motion.div 
+                    className="hidden md:flex items-center space-x-3"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <div className="w-8 h-8 bg-gradient-to-r from-cyan-400 to-purple-500 rounded-full flex items-center justify-center text-xs font-bold text-white">
+                        {user.name.charAt(0)}
+                      </div>
+                      <span className="text-sm text-gray-300">Hi, {user.name.split(' ')[0]}</span>
+                    </div>
+                    {user.role === 'admin' && (
+                      <Link to="/admin">
+                        <AnimatedButton
+                          variant="outline"
+                          className="text-sm py-1 px-3 border-purple-500 text-purple-400 hover:border-purple-400 hover:text-purple-300"
+                        >
+                          ⚙️ Admin
+                        </AnimatedButton>
+                      </Link>
+                    )}
+                    <AnimatedButton 
+                      variant="outline" 
+                      onClick={handleLogout} 
+                      className="text-sm py-1 px-3 border-gray-600 text-gray-300 hover:border-cyan-400 hover:text-cyan-400"
+                    >
+                      Logout
+                    </AnimatedButton>
+                  </motion.div>
+                ) : (
+                  <div className="hidden md:flex items-center space-x-2">
+                    <Link to="/login">
+                      <AnimatedButton variant="outline" className="text-sm py-1 px-3 border-gray-600 text-gray-300 hover:border-cyan-400 hover:text-cyan-400">
+                        Login
+                      </AnimatedButton>
+                    </Link>
+                    <Link to="/register">
+                      <AnimatedButton className="text-sm py-1 px-3 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600">
+                        Sign Up
+                      </AnimatedButton>
+                    </Link>
                   </div>
-                  <span className="text-sm text-gray-300">Hi, {user.name.split(' ')[0]}</span>
-                </div>
-                <AnimatedButton 
-                  variant="outline" 
-                  onClick={handleLogout} 
-                  className="text-sm py-1 px-3 border-gray-600 text-gray-300 hover:border-cyan-400 hover:text-cyan-400"
-                >
-                  Logout
-                </AnimatedButton>
-              </motion.div>
-            ) : (
-              <div className="hidden md:flex items-center space-x-2">
-                <Link to="/login">
-                  <AnimatedButton variant="outline" className="text-sm py-1 px-3 border-gray-600 text-gray-300 hover:border-cyan-400 hover:text-cyan-400">
-                    Login
-                  </AnimatedButton>
-                </Link>
-                <Link to="/register">
-                  <AnimatedButton className="text-sm py-1 px-3 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600">
-                    Sign Up
-                  </AnimatedButton>
-                </Link>
-              </div>
+                )}
+              </>
             )}
 
             {/* Mobile menu button */}
@@ -230,6 +244,15 @@ const Navbar = () => {
                 {user ? (
                   <>
                     <div className="px-3 py-2 text-sm text-gray-400">Logged in as {user.name}</div>
+                    {user.role === 'admin' && (
+                      <Link
+                        to="/admin"
+                        className="block px-3 py-2 rounded-md text-base font-medium text-purple-400 hover:text-purple-300 hover:bg-purple-400/10 transition-colors"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        ⚙️ Admin Panel
+                      </Link>
+                    )}
                     <button
                       onClick={handleLogout}
                       className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700/50 transition-colors"
