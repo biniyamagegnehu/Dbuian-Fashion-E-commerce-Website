@@ -4,9 +4,9 @@ import { useAuth } from '../../context/AuthContext';
 import LoadingSpinner from '../admin/UI/LoadingSpinner'; // Assume this is where the loading spinner is
 
 const AdminRoute = ({ children }) => {
-  const { user, isLoading, isAuthenticated } = useAuth();
+  const { user, isInitialized, isAuthenticated } = useAuth();
 
-  if (isLoading) {
+  if (!isInitialized) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <LoadingSpinner size="lg" text="Checking authentication..." />
@@ -19,8 +19,8 @@ const AdminRoute = ({ children }) => {
   }
 
   if (user && user.role !== 'admin') {
-    // Authenticated normal user, redirect to home or unauthorized
-    return <Navigate to="/" />;
+    // Authenticated normal user, redirect to unauthorized
+    return <Navigate to="/unauthorized" />;
   }
 
   return children;
