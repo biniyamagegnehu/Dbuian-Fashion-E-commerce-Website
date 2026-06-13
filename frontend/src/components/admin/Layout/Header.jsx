@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Menu, Bell, Search, LogOut, Settings, User, Mail } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
+import { adminDashboardAPI } from '../../../services/api';
 
 const Header = ({ onMenuClick, user }) => {
   const { logout } = useAuth();
@@ -15,48 +16,25 @@ const Header = ({ onMenuClick, user }) => {
   const notificationsRef = useRef(null);
   const userMenuRef = useRef(null);
 
-  // Mock notifications data
+  // Fetch notifications from backend
   useEffect(() => {
-    const mockNotifications = [
-      {
-        id: 1,
-        type: 'order',
-        title: 'New Order Received',
-        message: 'Order #DBU-12345 has been placed',
-        time: '5 min ago',
-        read: false,
-        action: '/orders'
-      },
-      {
-        id: 2,
-        type: 'user',
-        title: 'New User Registered',
-        message: 'John Doe signed up as a new customer',
-        time: '1 hour ago',
-        read: false,
-        action: '/users'
-      },
-      {
-        id: 3,
-        type: 'review',
-        title: 'New Product Review',
-        message: 'A customer left a 5-star review',
-        time: '2 hours ago',
-        read: true,
-        action: '/reviews'
-      },
-      {
-        id: 4,
-        type: 'system',
-        title: 'System Backup Complete',
-        message: 'Daily backup completed successfully',
-        time: '5 hours ago',
-        read: true,
-        action: '/settings'
+    const fetchNotifications = async () => {
+      try {
+        const response = await adminDashboardAPI.getNotifications();
+        if (response.data && response.data.data) {
+          setNotifications(response.data.data);
+          setUnreadCount(response.data.data.filter(n => !n.read).length);
+        }
+      } catch (error) {
+        console.error('Error fetching admin notifications:', error);
       }
-    ];
-    setNotifications(mockNotifications);
-    setUnreadCount(mockNotifications.filter(n => !n.read).length);
+    };
+
+    fetchNotifications();
+    
+    // Optional: Set up an interval to refresh notifications every 5 minutes
+    const interval = setInterval(fetchNotifications, 5 * 60 * 1000);
+    return () => clearInterval(interval);
   }, []);
 
   // Close dropdowns when clicking outside
@@ -95,8 +73,9 @@ const Header = ({ onMenuClick, user }) => {
     setShowNotifications(false);
     
     // Navigate to the relevant page
-    // navigate(notification.action);
-    console.log('Navigating to:', notification.action);
+    if (notification.action) {
+      navigate(notification.action);
+    }
   };
 
   const markAllAsRead = () => {
@@ -188,14 +167,14 @@ const Header = ({ onMenuClick, user }) => {
 
             {/* Notifications Dropdown */}
             {showNotifications && (
-              <div className="absolute right-0 top-12 w-80 glass-card border border-white/10 rounded-lg shadow-xl z-50">
-                <div className="p-4 border-b border-white/10">
+              <div className="absolute right-0 top-12 w-[22rem] sm:w-[26rem] bg-[#1a1f2e]/95 backdrop-blur-xl border border-white/20 rounded-xl shadow-2xl z-50 overflow-hidden transform origin-top-right transition-all duration-200">
+                <div className="p-4 border-b border-white/10 bg-gradient-to-r from-white/5 to-transparent">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-white">Notifications</h3>
+                    <h3 className="font-bold text-white text-lg">Notifications</h3>
                     {unreadCount > 0 && (
                       <button
                         onClick={markAllAsRead}
-                        className="text-cyan-400 text-sm hover:text-cyan-300 transition-colors"
+                        className="text-cyan-400 text-sm font-medium hover:text-cyan-300 hover:underline transition-all"
                       >
                         Mark all as read
                       </button>
@@ -203,50 +182,60 @@ const Header = ({ onMenuClick, user }) => {
                   </div>
                 </div>
                 
-                <div className="max-h-96 overflow-y-auto">
+                <div className="max-h-[26rem] overflow-y-auto custom-scrollbar">
                   {notifications.length > 0 ? (
                     notifications.map((notification) => (
                       <div
                         key={notification.id}
                         onClick={() => handleNotificationClick(notification)}
-                        className={`p-4 border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer ${
+                        className={`group p-4 border-b border-white/5 hover:bg-white/10 transition-all duration-200 cursor-pointer relative ${
                           !notification.read ? 'bg-cyan-500/5' : ''
                         }`}
                       >
-                        <div className="flex items-start space-x-3">
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${getNotificationColor(notification.type)}`}>
-                            <span className="text-sm">{getNotificationIcon(notification.type)}</span>
+                        {/* Unread indicator line */}
+                        {!notification.read && (
+                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.6)]"></div>
+                        )}
+                        
+                        <div className="flex items-start space-x-4 pl-1">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border border-white/5 shadow-inner ${getNotificationColor(notification.type)} group-hover:scale-105 transition-transform duration-200`}>
+                            <span className="text-lg">{getNotificationIcon(notification.type)}</span>
                           </div>
+                          
                           <div className="flex-1 min-w-0">
-                            <p className="text-white font-medium text-sm truncate">
-                              {notification.title}
-                            </p>
-                            <p className="text-gray-400 text-xs mt-1">
+                            <div className="flex justify-between items-start mb-1">
+                              <p className={`font-semibold text-sm truncate pr-2 ${!notification.read ? 'text-white' : 'text-gray-300'}`}>
+                                {notification.title}
+                              </p>
+                              <span className="text-xs text-gray-500 whitespace-nowrap pt-0.5">
+                                {notification.time}
+                              </span>
+                            </div>
+                            <p className="text-gray-400 text-sm line-clamp-2 leading-snug group-hover:text-gray-300 transition-colors">
                               {notification.message}
                             </p>
-                            <p className="text-gray-500 text-xs mt-2">
-                              {notification.time}
-                            </p>
                           </div>
-                          {!notification.read && (
-                            <div className="w-2 h-2 bg-cyan-400 rounded-full mt-2"></div>
-                          )}
                         </div>
                       </div>
                     ))
                   ) : (
-                    <div className="p-8 text-center">
-                      <Bell className="w-8 h-8 text-gray-500 mx-auto mb-2" />
-                      <p className="text-gray-400 text-sm">No notifications</p>
+                    <div className="p-10 flex flex-col items-center justify-center text-center">
+                      <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-4">
+                        <Bell className="w-8 h-8 text-gray-500" />
+                      </div>
+                      <p className="text-gray-300 font-medium">All caught up!</p>
+                      <p className="text-gray-500 text-sm mt-1">No new notifications right now</p>
                     </div>
                   )}
                 </div>
                 
-                <div className="p-3 border-t border-white/10">
-                  <button className="w-full text-center text-cyan-400 text-sm hover:text-cyan-300 transition-colors">
-                    View All Notifications
-                  </button>
-                </div>
+                {notifications.length > 0 && (
+                  <div className="p-3 border-t border-white/10 bg-white/5">
+                    <button className="w-full py-2 text-center text-cyan-400 font-medium text-sm rounded-lg hover:bg-white/10 hover:text-cyan-300 transition-all duration-200">
+                      View All Notifications
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>

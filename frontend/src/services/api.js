@@ -183,6 +183,11 @@ export const adminAuthAPI = {
   getMe: () => api.get('/api/admin/auth/me'),
 };
 
+// Admin Dashboard API
+export const adminDashboardAPI = {
+  getNotifications: () => api.get('/api/admin/notifications'),
+};
+
 // Users API
 export const usersAPI = {
   getAll: (params = {}) => api.get('/api/users', { params }),
