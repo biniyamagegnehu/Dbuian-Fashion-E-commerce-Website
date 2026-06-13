@@ -15,11 +15,11 @@ const Sidebar = ({ isOpen, onClose }) => {
   const location = useLocation();
 
   const menuItems = [
-    { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
-    { path: '/products', icon: Package, label: 'Products' },
-    { path: '/orders', icon: ShoppingCart, label: 'Orders' },
-    { path: '/users', icon: Users, label: 'Users' },
-    { path: '/reviews', icon: Star, label: 'Reviews' },
+    { path: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { path: '/admin/products', icon: Package, label: 'Products' },
+    { path: '/admin/orders', icon: ShoppingCart, label: 'Orders' },
+    { path: '/admin/users', icon: Users, label: 'Users' },
+    { path: '/admin/reviews', icon: Star, label: 'Reviews' },
   ];
 
   return (
