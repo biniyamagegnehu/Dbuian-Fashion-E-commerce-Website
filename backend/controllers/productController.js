@@ -97,7 +97,16 @@ exports.getProducts = async (req, res, next) => {
       total,
       pages,
       currentPage: pageNum,
-      products
+      products,
+      data: products,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages,
+        hasNextPage: pageNum < pages,
+        hasPrevPage: pageNum > 1
+      }
     });
   } catch (error) {
     next(error);

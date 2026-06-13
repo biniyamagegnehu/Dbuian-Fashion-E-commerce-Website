@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Plus, Search, Filter, Package, Edit, Trash2, Eye, X, Upload, Save, Image } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Plus, Search, Filter, Package, Edit, Trash2, Eye, X, Upload, Save, Image, ChevronLeft, ChevronRight } from 'lucide-react';
 import { productsAPI, uploadAPI } from '../../services/api';
 import { getImageUrl } from '../../services/api';
 
@@ -14,7 +14,6 @@ const Products = () => {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [products, setProducts] = useState([]);
-  const [filteredProducts, setFilteredProducts] = useState([]);
   const [formData, setFormData] = useState({
     name: '',
     price: '',
@@ -30,6 +29,30 @@ const Products = () => {
     colors: [],
     images: []
   });
+
+  // ─── Pagination state ────────────────────────────────────────────────────────
+  const [page, setPage] = useState(1);
+  const LIMIT = 10;
+  const [pagination, setPagination] = useState({
+    page: 1, limit: LIMIT, total: 0, pages: 0,
+    hasNextPage: false, hasPrevPage: false
+  });
+
+  // Debounced search so we don't fire a request on every keystroke
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchTerm), 400);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
+
+  // Reset to page 1 whenever filters change
+  useEffect(() => { setPage(1); }, [debouncedSearch, selectedCategory, selectedGender, priceRange]);
+
+  // Fetch whenever page or filters change
+  useEffect(() => {
+    fetchProducts();
+  }, [page, debouncedSearch, selectedCategory, selectedGender, priceRange]);
+  // ─────────────────────────────────────────────────────────────────────────────
 
   const categories = [
     'T-Shirts',
@@ -64,58 +87,35 @@ const Products = () => {
     'Unisex': 'from-green-500 to-teal-400'
   };
 
-  useEffect(() => {
-    fetchProducts();
-  }, []);
-
-  useEffect(() => {
-    filterProducts();
-  }, [products, searchTerm, selectedCategory, selectedGender, priceRange]);
-
   const fetchProducts = async () => {
     try {
-      const response = await productsAPI.getAll();
-      setProducts(response.data.products || []);
+      setLoading(true);
+      const params = {
+        page,
+        limit: LIMIT,
+        search: debouncedSearch || undefined,
+        category: selectedCategory !== 'all' ? selectedCategory : undefined,
+        gender: selectedGender !== 'all' ? selectedGender : undefined,
+        priceMin: priceRange.min || undefined,
+        priceMax: priceRange.max || undefined
+      };
+      const response = await productsAPI.getAll(params);
+      const resData = response.data;
+      setProducts(resData.data || resData.products || []);
+      if (resData.pagination) {
+        setPagination(resData.pagination);
+      } else {
+         // Fallback if pagination is missing
+         setPagination({
+            page: 1, limit: LIMIT, total: resData.products?.length || 0, pages: 1,
+            hasNextPage: false, hasPrevPage: false
+         });
+      }
     } catch (error) {
       console.error('Error fetching products:', error);
+    } finally {
+      setLoading(false);
     }
-  };
-
-  const filterProducts = () => {
-    let filtered = products;
-
-    // Search filter
-    if (searchTerm) {
-      filtered = filtered.filter(product =>
-        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.category.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    // Category filter
-    if (selectedCategory !== 'all') {
-      filtered = filtered.filter(product =>
-        product.category.toLowerCase() === selectedCategory.toLowerCase()
-      );
-    }
-
-    // Gender filter
-    if (selectedGender !== 'all') {
-      filtered = filtered.filter(product =>
-        product.gender.toLowerCase() === selectedGender.toLowerCase()
-      );
-    }
-
-    // Price range filter
-    if (priceRange.min) {
-      filtered = filtered.filter(product => product.price >= Number(priceRange.min));
-    }
-    if (priceRange.max) {
-      filtered = filtered.filter(product => product.price <= Number(priceRange.max));
-    }
-
-    setFilteredProducts(filtered);
   };
 
   const handleInputChange = (e) => {
@@ -486,58 +486,88 @@ const handleImageUpload = async (e) => {
       <div className="glass-card p-6">
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-xl font-semibold text-white">
-            Products ({filteredProducts.length} of {products.length})
+            Products ({products.length} of {pagination.total || products.length})
           </h3>
         </div>
         
-         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProducts.map(product => (
-              <div key={product._id} className="glass-card p-4 hover:transform hover:scale-105 transition-all duration-300 group">
-                <div className="relative">
-<div className="w-full h-48 bg-white/5 rounded-lg mb-4 flex items-center justify-center overflow-hidden">
-  {product.images && product.images.length > 0 ? (
-    <img 
-      src={getImageUrl(
-        typeof product.images[0] === 'string' 
-          ? product.images[0] 
-          : product.images[0].url
-      )} 
-      alt={product.name}
-      className="w-full h-full object-cover rounded-lg group-hover:scale-110 transition-transform duration-300"
-    />
-  ) : (
-    <Package className="w-12 h-12 text-gray-500" />
-  )}
-</div>
-    
-                  {/* Edit and Delete Buttons */}
-                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex space-x-1">
-                    <button
-                      onClick={() => openEditModal(product)}
-                      className="p-2 bg-blue-500/80 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                      title="Edit Product"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(product._id)}
-                      className="p-2 bg-red-500/80 text-white rounded-lg hover:bg-red-600 transition-colors"
-                      title="Delete Product"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+        {products.length > 0 ? (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {products.map(product => (
+                <div key={product._id} className="glass-card p-4 hover:transform hover:scale-105 transition-all duration-300 group">
+                  <div className="relative">
+                    <div className="w-full h-48 bg-white/5 rounded-lg mb-4 flex items-center justify-center overflow-hidden">
+                      {product.images && product.images.length > 0 ? (
+                        <img 
+                          src={getImageUrl(
+                            typeof product.images[0] === 'string' 
+                              ? product.images[0] 
+                              : product.images[0].url
+                          )} 
+                          alt={product.name}
+                          className="w-full h-full object-cover rounded-lg group-hover:scale-110 transition-transform duration-300"
+                        />
+                      ) : (
+                        <Package className="w-12 h-12 text-gray-500" />
+                      )}
+                    </div>
+                        
+                    {/* Edit and Delete Buttons */}
+                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex space-x-1">
+                      <button
+                        onClick={() => openEditModal(product)}
+                        className="p-2 bg-blue-500/80 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                        title="Edit Product"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(product._id)}
+                        className="p-2 bg-red-500/80 text-white rounded-lg hover:bg-red-600 transition-colors"
+                        title="Delete Product"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <h4 className="font-semibold text-white mb-2">{product.name}</h4>
+                  <p className="text-cyan-400 font-bold mb-2">ETB {product.price}</p>
+                  <div className="flex justify-between items-center text-sm text-gray-400">
+                    <span>Stock: {product.stock}</span>
+                    <span>{product.category}</span>
                   </div>
                 </div>
-
-                <h4 className="font-semibold text-white mb-2">{product.name}</h4>
-                <p className="text-cyan-400 font-bold mb-2">ETB {product.price}</p>
-                <div className="flex justify-between items-center text-sm text-gray-400">
-                  <span>Stock: {product.stock}</span>
-                  <span>{product.category}</span>
+              ))}
+            </div>
+            
+            {/* Pagination Controls */}
+            {pagination.pages > 1 && (
+              <div className="flex justify-between items-center mt-8 pt-6 border-t border-white/10">
+                <span className="text-gray-400 text-sm">
+                  Page {pagination.page} of {pagination.pages}
+                </span>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    disabled={!pagination.hasPrevPage}
+                    className="flex items-center space-x-1 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    <span>Previous</span>
+                  </button>
+                  <button
+                    onClick={() => setPage(p => Math.min(pagination.pages, p + 1))}
+                    disabled={!pagination.hasNextPage}
+                    className="flex items-center space-x-1 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <span>Next</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         ) : (
           <div className="text-center py-12">
             <Package className="w-16 h-16 text-gray-500 mx-auto mb-4" />
@@ -556,7 +586,7 @@ const handleImageUpload = async (e) => {
               <span>Add Your First Product</span>
             </button>
           </div>
-        )
+        )}
       </div>
 
       {/* Add/Edit Product Modal */}
