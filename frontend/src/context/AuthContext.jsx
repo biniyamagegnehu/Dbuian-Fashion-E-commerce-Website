@@ -1,30 +1,32 @@
 // src/context/AuthContext.jsx
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { authAPI, adminAuthAPI } from '../services/api';
+import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
+import { authAPI } from '../services/api';
 
 const AuthContext = createContext();
 
 const authReducer = (state, action) => {
   switch (action.type) {
-    case 'LOGIN_START':
+    case 'AUTH_START':
       return { ...state, isLoading: true, error: null };
-    case 'LOGIN_SUCCESS':
+    case 'AUTH_SUCCESS':
       return {
         ...state,
         user: action.payload.user,
         token: action.payload.token,
         isAuthenticated: true,
         isLoading: false,
-        error: null
+        error: null,
+        isInitialized: true
       };
-    case 'LOGIN_FAILURE':
+    case 'AUTH_FAILURE':
       return {
         ...state,
         user: null,
         token: null,
         isAuthenticated: false,
         isLoading: false,
-        error: action.payload
+        error: action.payload,
+        isInitialized: true
       };
     case 'LOGOUT':
       return {
@@ -33,12 +35,13 @@ const authReducer = (state, action) => {
         token: null,
         isAuthenticated: false,
         isLoading: false,
-        error: null
+        error: null,
+        isInitialized: true
       };
     case 'CLEAR_ERROR':
       return { ...state, error: null };
-    case 'SET_LOADING':
-      return { ...state, isLoading: action.payload };
+    case 'SET_INITIALIZED':
+      return { ...state, isInitialized: true, isLoading: false };
     default:
       return state;
   }
@@ -48,76 +51,85 @@ const initialState = {
   user: null,
   token: null,
   isAuthenticated: false,
-  isLoading: false,
+  isLoading: true, // Start loading as we check auth on mount
+  isInitialized: false,
   error: null
 };
 
 export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
-  // Check if user is logged in on app load
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    const user = localStorage.getItem('user');
-    
-    if (token && user) {
-      dispatch({
-        type: 'LOGIN_SUCCESS',
-        payload: { user: JSON.parse(user), token }
-      });
-    }
+  // Centralized auth success handler
+  const handleAuthSuccess = useCallback((user, token) => {
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(user));
+    dispatch({
+      type: 'AUTH_SUCCESS',
+      payload: { user, token }
+    });
   }, []);
 
+  // Check if user is logged in on app load
+  useEffect(() => {
+    const initAuth = async () => {
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        dispatch({ type: 'SET_INITIALIZED' });
+        return;
+      }
+
+      try {
+        // Verify token with backend to get latest user details
+        const response = await authAPI.getMe();
+        if (response.data.success && response.data.user) {
+          handleAuthSuccess(response.data.user, token);
+        } else {
+          throw new Error('Invalid response format');
+        }
+      } catch (error) {
+        console.error('Auth initialization failed:', error);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        dispatch({ type: 'AUTH_FAILURE', payload: null });
+      }
+    };
+
+    initAuth();
+  }, [handleAuthSuccess]);
+
   const login = async (email, password) => {
-    dispatch({ type: 'LOGIN_START' });
+    dispatch({ type: 'AUTH_START' });
     
     try {
       const response = await authAPI.login({ email, password });
       const { user, token, message } = response.data;
 
-      // Store in localStorage
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-
-      dispatch({
-        type: 'LOGIN_SUCCESS',
-        payload: { user, token }
-      });
-
+      handleAuthSuccess(user, token);
       return { user, message };
     } catch (error) {
-      const errorMessage = error.message || 'Login failed';
+      const errorMessage = error.response?.data?.error || error.message || 'Login failed';
       dispatch({
-        type: 'LOGIN_FAILURE',
+        type: 'AUTH_FAILURE',
         payload: errorMessage
       });
       throw new Error(errorMessage);
     }
   };
 
-
-
   const register = async (userData) => {
-    dispatch({ type: 'LOGIN_START' });
+    dispatch({ type: 'AUTH_START' });
     
     try {
       const response = await authAPI.register(userData);
       const { user, token, message } = response.data;
 
-      // Store in localStorage
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-
-      dispatch({
-        type: 'LOGIN_SUCCESS',
-        payload: { user, token }
-      });
-
+      handleAuthSuccess(user, token);
       return { user, message };
     } catch (error) {
-      const errorMessage = error.message || 'Registration failed';
+      const errorMessage = error.response?.data?.error || error.message || 'Registration failed';
       dispatch({
-        type: 'LOGIN_FAILURE',
+        type: 'AUTH_FAILURE',
         payload: errorMessage
       });
       throw new Error(errorMessage);
@@ -125,36 +137,31 @@ export const AuthProvider = ({ children }) => {
   };
 
   const googleLogin = async (credential) => {
-    dispatch({ type: 'LOGIN_START' });
+    dispatch({ type: 'AUTH_START' });
     
     try {
       const response = await authAPI.googleAuth(credential);
       const { user, token, message } = response.data;
 
-      // Store in localStorage
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-
-      dispatch({
-        type: 'LOGIN_SUCCESS',
-        payload: { user, token }
-      });
-
+      handleAuthSuccess(user, token);
       return { user, message };
     } catch (error) {
-      const errorMessage = error.message || 'Google login failed';
+      const errorMessage = error.response?.data?.error || error.message || 'Google login failed';
       dispatch({
-        type: 'LOGIN_FAILURE',
+        type: 'AUTH_FAILURE',
         payload: errorMessage
       });
       throw new Error(errorMessage);
     }
   };
 
-  const logout = () => {
+  const logout = (navigate) => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     dispatch({ type: 'LOGOUT' });
+    if (navigate) {
+      navigate('/login');
+    }
   };
 
   const clearError = () => {
@@ -164,11 +171,7 @@ export const AuthProvider = ({ children }) => {
   return (
     <AuthContext.Provider
       value={{
-        user: state.user,
-        token: state.token,
-        isAuthenticated: state.isAuthenticated,
-        isLoading: state.isLoading,
-        error: state.error,
+        ...state,
         login,
         googleLogin,
         register,
