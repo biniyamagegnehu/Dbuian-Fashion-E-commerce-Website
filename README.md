@@ -83,3 +83,26 @@ Start frontend (User & Admin Website):
 cd frontend
 npm run dev
 ```
+
+### Testing Authentication Flows
+
+To manually verify the authentication and role-based navigation flows locally:
+
+1. **Email/Password User**:
+   - Register a new user at `/register`.
+   - Log in and verify that the user profile and logout buttons appear in the navigation.
+   - Refresh the page to ensure your login session persists.
+   - Try navigating to `/admin` and confirm you are redirected to the `/unauthorized` page.
+   - Click "Logout" and confirm that user-specific navigation links disappear.
+
+2. **Email/Password Admin**:
+   - Ensure an account has the `"admin"` role in the database.
+   - Log in with that account. You should be redirected to the `/admin/dashboard` automatically.
+   - Refresh the `/admin` page to verify the session persists within the admin layout.
+   - Click "Logout" from the admin sidebar to clear the session and confirm you cannot access `/admin` again.
+
+3. **Google Authentication**:
+   - Log in using a Google account.
+   - Confirm the auth state correctly persists on page refresh.
+   - If the account does not have the `"admin"` role, confirm that navigating to `/admin` blocks access.
+   - Logout from the main store layout.
