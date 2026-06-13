@@ -15,6 +15,15 @@ import Register from './pages/Register';
 import About from './pages/About';
 import Contact from './pages/Contact';
 
+// Admin imports
+import AdminRoute from './components/routing/AdminRoute';
+import AdminLayout from './components/admin/Layout/Layout';
+import Dashboard from './pages/admin/Dashboard';
+import AdminProducts from './pages/admin/Products';
+import AdminOrders from './pages/admin/Orders';
+import AdminUsers from './pages/admin/Users';
+import AdminReviews from './pages/admin/Reviews';
+
 const pageVariants = {
   initial: { opacity: 0, y: 20 },
   in: { opacity: 1, y: 0 },
@@ -58,6 +67,14 @@ function App() {
                   <Route path="/register" element={<AnimatedPage><Register /></AnimatedPage>} />
                   <Route path="/about" element={<AnimatedPage><About /></AnimatedPage>} />
                   <Route path="/contact" element={<AnimatedPage><Contact /></AnimatedPage>} />
+
+                  {/* Admin Routes */}
+                  <Route path="/admin" element={<AdminRoute><AdminLayout><Dashboard /></AdminLayout></AdminRoute>} />
+                  <Route path="/admin/dashboard" element={<AdminRoute><AdminLayout><Dashboard /></AdminLayout></AdminRoute>} />
+                  <Route path="/admin/products" element={<AdminRoute><AdminLayout><AdminProducts /></AdminLayout></AdminRoute>} />
+                  <Route path="/admin/orders" element={<AdminRoute><AdminLayout><AdminOrders /></AdminLayout></AdminRoute>} />
+                  <Route path="/admin/users" element={<AdminRoute><AdminLayout><AdminUsers /></AdminLayout></AdminRoute>} />
+                  <Route path="/admin/reviews" element={<AdminRoute><AdminLayout><AdminReviews /></AdminLayout></AdminRoute>} />
 
                 </Routes>
               </AnimatePresence>
