@@ -8,15 +8,91 @@ const ErrorResponse = require('../utils/errorResponse');
 // @access  Private/Admin
 exports.getAllReviews = async (req, res, next) => {
   try {
-    const reviews = await Review.find()
+    const { page = 1, limit = 10, search, rating } = req.query;
+
+    const query = {};
+
+    // Rating filter (exact match or minimum rating)
+    if (rating && rating !== 'all') {
+      query.rating = parseInt(rating);
+    }
+
+    // Search filter — search by comment, product name, or user name
+    if (search) {
+      // Find matching products
+      const products = await Product.find({
+        name: { $regex: search, $options: 'i' }
+      }).select('_id');
+      const productIds = products.map(p => p._id);
+
+      // Find matching users
+      const User = require('../models/User');
+      const users = await User.find({
+        $or: [
+          { name: { $regex: search, $options: 'i' } },
+          { email: { $regex: search, $options: 'i' } }
+        ]
+      }).select('_id');
+      const userIds = users.map(u => u._id);
+
+      query.$or = [
+        { comment: { $regex: search, $options: 'i' } },
+        { userName: { $regex: search, $options: 'i' } }
+      ];
+
+      if (productIds.length > 0) {
+        query.$or.push({ product: { $in: productIds } });
+      }
+      if (userIds.length > 0) {
+        query.$or.push({ user: { $in: userIds } });
+      }
+    }
+
+    // Global Stats (computed over all reviews, ignoring pagination)
+    const allReviews = await Review.find();
+    const totalAll = allReviews.length;
+    const averageRating = totalAll > 0
+      ? (allReviews.reduce((sum, r) => sum + r.rating, 0) / totalAll).toFixed(1)
+      : 0;
+    const positive = allReviews.filter(r => r.rating >= 4).length;
+    const needsAttention = allReviews.filter(r => r.rating <= 2).length;
+
+    const stats = {
+      total: totalAll,
+      averageRating: parseFloat(averageRating),
+      positive,
+      needsAttention
+    };
+
+    // Pagination
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
+
+    const total = await Review.countDocuments(query);
+    const pages = Math.ceil(total / limitNum);
+
+    const reviews = await Review.find(query)
       .populate('product', 'name images price')
       .populate('user', 'name email')
-      .sort('-createdAt');
+      .sort('-createdAt')
+      .skip(skip)
+      .limit(limitNum);
 
     res.status(200).json({
       success: true,
       count: reviews.length,
-      reviews
+      reviews, // keep for backward compatibility
+      data: reviews,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages,
+        hasNextPage: pageNum < pages,
+        hasPrevPage: pageNum > 1
+      },
+      stats
     });
   } catch (error) {
     next(error);

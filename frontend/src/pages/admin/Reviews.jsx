@@ -7,7 +7,6 @@ const Reviews = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [ratingFilter, setRatingFilter] = useState('all');
   const [reviews, setReviews] = useState([]);
-  const [filteredReviews, setFilteredReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [stats, setStats] = useState({
@@ -17,29 +16,55 @@ const Reviews = () => {
     needsAttention: 0
   });
 
+  // ─── Pagination state ────────────────────────────────────────────────────────
+  const [page, setPage] = useState(1);
+  const LIMIT = 10;
+  const [pagination, setPagination] = useState({
+    page: 1, limit: LIMIT, total: 0, pages: 0,
+    hasNextPage: false, hasPrevPage: false
+  });
+
+  // Debounced search
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchTerm), 400);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
+
+  // Reset to page 1 whenever filters change
+  useEffect(() => { setPage(1); }, [debouncedSearch, ratingFilter]);
+
+  // Fetch whenever page or filters change
   useEffect(() => {
     fetchReviews();
-  }, []);
-
-  useEffect(() => {
-    filterReviews();
-    calculateStats();
-  }, [reviews, searchTerm, ratingFilter]);
+  }, [page, debouncedSearch, ratingFilter]);
+  // ─────────────────────────────────────────────────────────────────────────────
 
   const fetchReviews = async () => {
     try {
       setLoading(true);
       setError(null);
-      console.log('🔄 Fetching reviews from API...');
-      
-      const response = await reviewsAPI.getAll();
-      console.log('📊 Reviews API response:', response);
-      
+
+      const params = {
+        page,
+        limit: LIMIT,
+        search: debouncedSearch || undefined,
+        rating: ratingFilter !== 'all' ? ratingFilter : undefined
+      };
+
+      const response = await reviewsAPI.getAll(params);
+      const resData = response.data;
+
       // Handle different response structures
-      const reviewsData = response.data?.reviews || response.data || [];
-      console.log('✅ Reviews data:', reviewsData);
-      
+      const reviewsData = resData?.data || resData?.reviews || [];
       setReviews(reviewsData);
+
+      if (resData.pagination) {
+        setPagination(resData.pagination);
+      }
+      if (resData.stats) {
+        setStats(resData.stats);
+      }
     } catch (error) {
       console.error('❌ Error fetching reviews:', error);
       setError(error.response?.data?.message || 'Failed to fetch reviews');
@@ -47,51 +72,6 @@ const Reviews = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const filterReviews = () => {
-    let filtered = reviews;
-
-    // Search filter
-    if (searchTerm) {
-      filtered = filtered.filter(review => {
-        const productName = review.product?.name || '';
-        const userName = review.user?.name || review.userName || '';
-        const userEmail = review.user?.email || '';
-        const comment = review.comment || '';
-        
-        return (
-          productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          userEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          comment.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-      });
-    }
-
-    // Rating filter
-    if (ratingFilter !== 'all') {
-      const minRating = parseInt(ratingFilter);
-      filtered = filtered.filter(review => review.rating >= minRating);
-    }
-
-    setFilteredReviews(filtered);
-  };
-
-  const calculateStats = () => {
-    const total = reviews.length;
-    const averageRating = total > 0 
-      ? (reviews.reduce((sum, review) => sum + review.rating, 0) / total).toFixed(1)
-      : 0;
-    const positive = reviews.filter(review => review.rating >= 4).length;
-    const needsAttention = reviews.filter(review => review.rating <= 2).length;
-
-    setStats({
-      total,
-      averageRating,
-      positive,
-      needsAttention
-    });
   };
 
   const deleteReview = async (reviewId) => {
@@ -347,7 +327,7 @@ const Reviews = () => {
             </span>
           )}
           <span className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full text-sm">
-            Showing {filteredReviews.length} of {reviews.length} reviews
+            Showing {reviews.length} of {pagination.total || reviews.length} reviews
           </span>
         </div>
       </div>
@@ -355,7 +335,7 @@ const Reviews = () => {
       {/* Reviews Table */}
       <div className="glass-card p-6">
         <div className="overflow-x-auto">
-          {filteredReviews.length > 0 ? (
+          {reviews.length > 0 ? (
             <table className="w-full">
               <thead>
                 <tr className="border-b border-white/10">
@@ -368,7 +348,7 @@ const Reviews = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredReviews.map((review) => {
+                {reviews.map((review) => {
                   const sentiment = getSentiment(review.rating);
                   const productName = review.product?.name || 'Product Not Found';
                   const userName = review.user?.name || review.userName || 'Anonymous';
@@ -448,12 +428,12 @@ const Reviews = () => {
                 {reviews.length === 0 ? "No Reviews Found" : "No Matching Reviews"}
               </h3>
               <p className="text-gray-400 mb-6">
-                {reviews.length === 0 
+                {pagination.total === 0 
                   ? "No reviews have been submitted yet."
                   : "No reviews match your current filters. Try adjusting your search criteria."
                 }
               </p>
-              {reviews.length === 0 && (
+              {pagination.total === 0 && (
                 <button
                   onClick={fetchReviews}
                   className="px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors"
@@ -464,6 +444,31 @@ const Reviews = () => {
             </div>
           )}
         </div>
+
+        {/* Pagination Controls */}
+        {pagination.pages > 1 && (
+          <div className="flex justify-between items-center mt-8 pt-6 border-t border-white/10">
+            <span className="text-gray-400 text-sm">
+              Page {pagination.page} of {pagination.pages}
+            </span>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={!pagination.hasPrevPage}
+                className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => setPage(p => Math.min(pagination.pages, p + 1))}
+                disabled={!pagination.hasNextPage}
+                className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
