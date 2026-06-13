@@ -7,7 +7,6 @@ const UsersManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [users, setUsers] = useState([]);
-  const [filteredUsers, setFilteredUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     total: 0,
@@ -16,58 +15,54 @@ const UsersManagement = () => {
     active: 0
   });
 
+  // ─── Pagination state ────────────────────────────────────────────────────────
+  const [page, setPage] = useState(1);
+  const LIMIT = 10;
+  const [pagination, setPagination] = useState({
+    page: 1, limit: LIMIT, total: 0, pages: 0,
+    hasNextPage: false, hasPrevPage: false
+  });
+
+  // Debounced search
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchTerm), 400);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
+
+  // Reset to page 1 whenever filters change
+  useEffect(() => { setPage(1); }, [debouncedSearch, roleFilter]);
+
+  // Fetch whenever page or filters change
   useEffect(() => {
     fetchUsers();
-  }, []);
-
-  useEffect(() => {
-    filterUsers();
-    calculateStats();
-  }, [users, searchTerm, roleFilter]);
+  }, [page, debouncedSearch, roleFilter]);
+  // ─────────────────────────────────────────────────────────────────────────────
 
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const response = await usersAPI.getAll();
-      setUsers(response.data.users || []);
+      const params = {
+        page,
+        limit: LIMIT,
+        search: debouncedSearch || undefined,
+        role: roleFilter !== 'all' ? roleFilter : undefined
+      };
+      const response = await usersAPI.getAll(params);
+      const resData = response.data;
+      setUsers(resData.data || resData.users || []);
+      
+      if (resData.pagination) {
+        setPagination(resData.pagination);
+      }
+      if (resData.stats) {
+        setStats(resData.stats);
+      }
     } catch (error) {
       console.error('Error fetching users:', error);
     } finally {
       setLoading(false);
     }
-  };
-
-  const filterUsers = () => {
-    let filtered = users;
-
-    // Search filter
-    if (searchTerm) {
-      filtered = filtered.filter(user =>
-        user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.studentId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.phoneNumber?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    // Role filter
-    if (roleFilter !== 'all') {
-      filtered = filtered.filter(user =>
-        user.role?.toLowerCase() === roleFilter.toLowerCase()
-      );
-    }
-
-    setFilteredUsers(filtered);
-  };
-
-  const calculateStats = () => {
-    const stats = {
-      total: users.length,
-      customers: users.filter(user => user.role === 'customer').length,
-      admins: users.filter(user => user.role === 'admin').length,
-      active: users.filter(user => user.isActive !== false).length
-    };
-    setStats(stats);
   };
 
   const updateUserRole = async (userId, newRole) => {
@@ -148,7 +143,7 @@ const UsersManagement = () => {
   const exportUsers = () => {
     // Simple CSV export functionality
     const headers = ['Name', 'Email', 'Student ID', 'Phone', 'Role', 'Status', 'Joined Date'];
-    const csvData = filteredUsers.map(user => [
+    const csvData = users.map(user => [
       user.name || 'N/A',
       user.email || 'N/A',
       user.studentId || 'N/A',
@@ -306,7 +301,7 @@ const UsersManagement = () => {
             </span>
           )}
           <span className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full text-sm">
-            Showing {filteredUsers.length} of {users.length} users
+            Showing {users.length} of {pagination.total || users.length} users
           </span>
         </div>
       </div>
@@ -314,7 +309,7 @@ const UsersManagement = () => {
       {/* Users Table */}
       <div className="glass-card p-6">
         <div className="overflow-x-auto">
-          {filteredUsers.length > 0 ? (
+          {users.length > 0 ? (
             <table className="w-full">
               <thead>
                 <tr className="border-b border-white/10">
@@ -328,7 +323,7 @@ const UsersManagement = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredUsers.map((user) => (
+                {users.map((user) => (
                   <tr key={user._id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                     <td className="py-4 px-4">
                       <div className="flex items-center space-x-3">
@@ -398,7 +393,7 @@ const UsersManagement = () => {
               <UsersIcon className="w-16 h-16 text-gray-500 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-white mb-2">No Users Found</h3>
               <p className="text-gray-400 mb-6">
-                {users.length === 0 
+                {pagination.total === 0 
                   ? "No users have registered yet."
                   : "No users match your current filters. Try adjusting your search criteria."
                 }
@@ -413,6 +408,32 @@ const UsersManagement = () => {
             </div>
           )}
         </div>
+
+        {/* Pagination Controls */}
+        {pagination.pages > 1 && (
+          <div className="flex justify-between items-center mt-8 pt-6 border-t border-white/10">
+            <span className="text-gray-400 text-sm">
+              Page {pagination.page} of {pagination.pages}
+            </span>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={!pagination.hasPrevPage}
+                className="flex items-center space-x-1 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {/* For chevron left/right, I'll just use text or if lucide is imported... wait, ChevronLeft is not imported, let's just use text */}
+                <span>Previous</span>
+              </button>
+              <button
+                onClick={() => setPage(p => Math.min(pagination.pages, p + 1))}
+                disabled={!pagination.hasNextPage}
+                className="flex items-center space-x-1 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <span>Next</span>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

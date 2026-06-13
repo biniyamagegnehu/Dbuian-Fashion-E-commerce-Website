@@ -168,17 +168,97 @@ exports.getMyOrders = async (req, res, next) => {
 // @access  Private/Admin
 exports.getOrders = async (req, res, next) => {
   try {
-    const orders = await Order.find()
-      .populate('user', 'name email')
-      .sort('-createdAt');
+    const { page = 1, limit = 10, search, status, sort } = req.query;
 
-    const totalAmount = orders.reduce((acc, order) => acc + order.totalPrice, 0);
+    const query = {};
+
+    // 1. Status filter
+    if (status && status !== 'all') {
+      query.orderStatus = status;
+    }
+
+    // 2. Search filter
+    if (search) {
+      // Find users matching search term to include in order query
+      const User = require('../models/User'); // ensure User is available
+      const users = await User.find({
+        $or: [
+          { name: { $regex: search, $options: 'i' } },
+          { email: { $regex: search, $options: 'i' } }
+        ]
+      }).select('_id');
+      const userIds = users.map(u => u._id);
+
+      query.$or = [
+        { orderId: { $regex: search, $options: 'i' } },
+        { 'shippingInfo.firstName': { $regex: search, $options: 'i' } },
+        { 'shippingInfo.lastName': { $regex: search, $options: 'i' } },
+        { 'shippingInfo.phoneNumber': { $regex: search, $options: 'i' } }
+      ];
+
+      if (userIds.length > 0) {
+        query.$or.push({ user: { $in: userIds } });
+      }
+    }
+
+    // 3. Stats calculation
+    // Calculate global stats before pagination
+    const allOrders = await Order.find();
+    
+    // Urgent logic: pending and created > 2 hours ago
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+    const urgentCount = await Order.countDocuments({
+      orderStatus: 'pending',
+      createdAt: { $lte: twoHoursAgo }
+    });
+
+    const stats = {
+      total: allOrders.length,
+      pending: allOrders.filter(o => o.orderStatus === 'pending').length,
+      processing: allOrders.filter(o => o.orderStatus === 'processing').length,
+      shipped: allOrders.filter(o => o.orderStatus === 'shipped').length,
+      delivered: allOrders.filter(o => o.orderStatus === 'delivered').length,
+      urgent: urgentCount
+    };
+
+    const totalAmount = allOrders.reduce((acc, order) => acc + order.totalPrice, 0);
+
+    // 4. Pagination & Fetch
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
+
+    // Default sort by -createdAt
+    let sortObj = { createdAt: -1 };
+    if (sort) {
+       // if sort parameter is passed like "totalPrice" or "-totalPrice"
+       // not strictly asked for, but good to have
+    }
+
+    const total = await Order.countDocuments(query);
+    const pages = Math.ceil(total / limitNum);
+
+    const orders = await Order.find(query)
+      .populate('user', 'name email')
+      .sort(sortObj)
+      .skip(skip)
+      .limit(limitNum);
 
     res.status(200).json({
       success: true,
       count: orders.length,
       totalAmount,
-      orders
+      orders, // kept for backward compatibility if any other frontend uses it
+      data: orders,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages,
+        hasNextPage: pageNum < pages,
+        hasPrevPage: pageNum > 1
+      },
+      stats
     });
   } catch (error) {
     next(error);

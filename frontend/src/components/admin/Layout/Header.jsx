@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Menu, Bell, Search, LogOut, Settings, User, Mail } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 
 const Header = ({ onMenuClick, user }) => {
   const { logout } = useAuth();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -302,7 +304,7 @@ const Header = ({ onMenuClick, user }) => {
                 
                 <div className="p-3 border-t border-white/10">
                   <button
-                    onClick={logout}
+                    onClick={() => logout(() => navigate('/login'))}
                     className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-red-500/10 text-red-400 hover:text-red-300 transition-colors text-left"
                   >
                     <LogOut className="w-4 h-4" />

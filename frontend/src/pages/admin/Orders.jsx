@@ -28,7 +28,6 @@ const Orders = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [orders, setOrders] = useState([]);
-  const [filteredOrders, setFilteredOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedOrder, setExpandedOrder] = useState(null);
   const [stats, setStats] = useState({
@@ -40,6 +39,30 @@ const Orders = () => {
     urgent: 0
   });
 
+  // ─── Pagination state ────────────────────────────────────────────────────────
+  const [page, setPage] = useState(1);
+  const LIMIT = 10;
+  const [pagination, setPagination] = useState({
+    page: 1, limit: LIMIT, total: 0, pages: 0,
+    hasNextPage: false, hasPrevPage: false
+  });
+
+  // Debounced search
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchTerm), 400);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
+
+  // Reset to page 1 whenever filters change
+  useEffect(() => { setPage(1); }, [debouncedSearch, statusFilter]);
+
+  // Fetch whenever page or filters change
+  useEffect(() => {
+    fetchOrders();
+  }, [page, debouncedSearch, statusFilter]);
+  // ─────────────────────────────────────────────────────────────────────────────
+
   const statusOptions = [
     { value: 'all', label: 'All Orders', icon: Package, color: 'gray' },
     { value: 'pending', label: 'Pending', icon: Clock, color: 'orange' },
@@ -48,67 +71,30 @@ const Orders = () => {
     { value: 'delivered', label: 'Delivered', icon: CheckCircle, color: 'green' }
   ];
 
-  useEffect(() => {
-    fetchOrders();
-  }, []);
-
-  useEffect(() => {
-    filterOrders();
-    calculateStats();
-  }, [orders, searchTerm, statusFilter]);
-
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const response = await ordersAPI.getAll();
-      setOrders(response.data.orders || []);
+      const params = {
+        page,
+        limit: LIMIT,
+        search: debouncedSearch || undefined,
+        status: statusFilter !== 'all' ? statusFilter : undefined
+      };
+      const response = await ordersAPI.getAll(params);
+      const resData = response.data;
+      setOrders(resData.data || resData.orders || []);
+      
+      if (resData.pagination) {
+        setPagination(resData.pagination);
+      }
+      if (resData.stats) {
+        setStats(resData.stats);
+      }
     } catch (error) {
       console.error('Error fetching orders:', error);
     } finally {
       setLoading(false);
     }
-  };
-
-  const filterOrders = () => {
-    let filtered = orders;
-
-    // Search filter
-    if (searchTerm) {
-      filtered = filtered.filter(order =>
-        order.orderId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.user?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order._id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.shippingInfo?.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.shippingInfo?.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.shippingInfo?.phoneNumber?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    // Status filter
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(order =>
-        order.orderStatus?.toLowerCase() === statusFilter.toLowerCase()
-      );
-    }
-
-    setFilteredOrders(filtered);
-  };
-
-  const calculateStats = () => {
-    const urgentOrders = orders.filter(order => 
-      order.orderStatus === 'pending' && isOrderUrgent(order.createdAt)
-    );
-
-    const stats = {
-      total: orders.length,
-      pending: orders.filter(order => order.orderStatus === 'pending').length,
-      processing: orders.filter(order => order.orderStatus === 'processing').length,
-      shipped: orders.filter(order => order.orderStatus === 'shipped').length,
-      delivered: orders.filter(order => order.orderStatus === 'delivered').length,
-      urgent: urgentOrders.length
-    };
-    setStats(stats);
   };
 
   const isOrderUrgent = (createdAt) => {
@@ -616,15 +602,16 @@ const Orders = () => {
             </span>
           )}
           <span className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full text-sm">
-            Showing {filteredOrders.length} of {orders.length} orders
+            Showing {orders.length} of {pagination.total || orders.length} orders
           </span>
         </div>
       </div>
 
       {/* Orders List */}
       <div className="space-y-4">
-        {filteredOrders.length > 0 ? (
-          filteredOrders.map((order) => {
+        {orders.length > 0 ? (
+          <>
+            {orders.map((order) => {
             const StatusIcon = getStatusIcon(order.orderStatus);
             const isExpanded = expandedOrder === order._id;
             const timeRemaining = getTimeRemaining(order.createdAt);
@@ -695,17 +682,45 @@ const Orders = () => {
                 {isExpanded && <OrderDetailsCard order={order} />}
               </div>
             );
-          })
+          })}
+          </>
         ) : (
           <div className="glass-card p-12 text-center">
             <ShoppingCart className="w-16 h-16 text-gray-500 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-white mb-2">No Orders Found</h3>
             <p className="text-gray-400 mb-6">
-              {orders.length === 0 
+              {pagination.total === 0 
                 ? "No orders have been placed yet."
                 : "No orders match your current filters. Try adjusting your search criteria."
               }
             </p>
+          </div>
+        )}
+
+        {/* Pagination Controls */}
+        {pagination.pages > 1 && (
+          <div className="flex justify-between items-center mt-8 pt-6 border-t border-white/10">
+            <span className="text-gray-400 text-sm">
+              Page {pagination.page} of {pagination.pages}
+            </span>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={!pagination.hasPrevPage}
+                className="flex items-center space-x-1 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                <span>Previous</span>
+              </button>
+              <button
+                onClick={() => setPage(p => Math.min(pagination.pages, p + 1))}
+                disabled={!pagination.hasNextPage}
+                className="flex items-center space-x-1 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <span>Next</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         )}
       </div>

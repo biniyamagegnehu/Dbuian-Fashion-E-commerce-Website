@@ -7,12 +7,67 @@ const ErrorResponse = require('../utils/errorResponse');
 // @access  Private/Admin
 exports.getUsers = async (req, res, next) => {
   try {
-    const users = await User.find().select('-password').sort('-createdAt');
+    const { page = 1, limit = 10, search, role } = req.query;
+
+    const query = {};
+
+    // Role filter
+    if (role && role !== 'all') {
+      query.role = role;
+    }
+
+    // Search filter
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { studentId: { $regex: search, $options: 'i' } },
+        { phone: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    // Global Stats Calculation
+    const totalUsers = await User.countDocuments();
+    const customers = await User.countDocuments({ role: 'customer' });
+    const admins = await User.countDocuments({ role: 'admin' });
+    // Assuming active users are all users for now since there's no explicit inactive field
+    const active = totalUsers; 
+
+    const stats = {
+      total: totalUsers,
+      customers,
+      admins,
+      active
+    };
+
+    // Pagination
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
+
+    const total = await User.countDocuments(query);
+    const pages = Math.ceil(total / limitNum);
+
+    const users = await User.find(query)
+      .select('-password')
+      .sort('-createdAt')
+      .skip(skip)
+      .limit(limitNum);
 
     res.status(200).json({
       success: true,
       count: users.length,
-      users
+      users, // keep for backward compatibility
+      data: users,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages,
+        hasNextPage: pageNum < pages,
+        hasPrevPage: pageNum > 1
+      },
+      stats
     });
   } catch (error) {
     next(error);
