@@ -22,7 +22,7 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: [true, 'Please provide a password'],
+    required: [function() { return this.authProvider === 'local'; }, 'Please provide a password'],
     minlength: [6, 'Password must be at least 6 characters'],
     select: false
   },
@@ -46,6 +46,19 @@ const userSchema = new mongoose.Schema({
   address: {
     blockNumber: String,
     roomDormNumber: String
+  },
+  googleId: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
+  authProvider: {
+    type: String,
+    enum: ['local', 'google'],
+    default: 'local'
+  },
+  avatar: {
+    type: String
   },
   isVerified: {
     type: Boolean,
