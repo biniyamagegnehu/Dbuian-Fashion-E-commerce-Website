@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
 import GlassCard from '../components/ui/GlassCard';
 import AnimatedButton from '../components/ui/AnimatedButton';
@@ -13,7 +14,8 @@ const Login = () => {
   });
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const { login, isLoading } = useAuth();
+  const { login, googleLogin, isLoading } = useAuth();
+  const [googleLoading, setGoogleLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -43,6 +45,27 @@ const Login = () => {
     } catch (err) {
       setError(err.message);
     }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setError('');
+    setGoogleLoading(true);
+    try {
+      const result = await googleLogin(credentialResponse.credential);
+      if (result && result.user && result.user.role === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/');
+      }
+    } catch (err) {
+      setError(err.message || 'Google login failed. Please try again.');
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    setError('Google authentication was cancelled or failed. Please try again.');
   };
 
   const togglePasswordVisibility = () => {
@@ -278,6 +301,48 @@ const Login = () => {
               </AnimatedButton>
             </motion.div>
           </form>
+
+          {/* Divider */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.9 }}
+            className="mt-6 flex items-center"
+          >
+            <div className="flex-1 border-t border-gray-700/50" />
+            <span className="mx-4 text-sm text-gray-500">or continue with</span>
+            <div className="flex-1 border-t border-gray-700/50" />
+          </motion.div>
+
+          {/* Google Login Button */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 1.0 }}
+            className="mt-4 flex justify-center"
+          >
+            {googleLoading ? (
+              <div className="flex items-center justify-center py-3 text-gray-400">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                  className="w-5 h-5 border-2 border-cyan-400 border-t-transparent rounded-full mr-2"
+                />
+                Signing in with Google...
+              </div>
+            ) : (
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={handleGoogleError}
+                useOneTap={false}
+                theme="filled_black"
+                shape="rectangular"
+                text="continue_with"
+                size="large"
+                width="100%"
+              />
+            )}
+          </motion.div>
         </GlassCard>
       </motion.div>
     </div>

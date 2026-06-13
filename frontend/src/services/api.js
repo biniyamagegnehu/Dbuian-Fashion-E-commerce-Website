@@ -171,6 +171,7 @@ export const ordersAPI = {
 export const authAPI = {
   login: (credentials) => api.post('/api/auth/login', credentials),
   register: (userData) => api.post('/api/auth/register', userData),
+  googleAuth: (credential) => api.post('/api/auth/google', { credential }),
   getMe: () => api.get('/api/auth/me'),
   updateDetails: (userData) => api.put('/api/auth/updatedetails', userData),
   updatePassword: (passwordData) => api.put('/api/auth/updatepassword', passwordData),

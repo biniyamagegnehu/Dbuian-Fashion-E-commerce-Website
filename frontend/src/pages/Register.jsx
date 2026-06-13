@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
 import GlassCard from '../components/ui/GlassCard';
 import AnimatedButton from '../components/ui/AnimatedButton';
@@ -16,7 +17,8 @@ const Register = () => {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const { register, isLoading } = useAuth();
+  const { register, googleLogin, isLoading } = useAuth();
+  const [googleLoading, setGoogleLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -63,6 +65,27 @@ const Register = () => {
     } catch (err) {
       setError(err.message || 'An error occurred during registration');
     }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setError('');
+    setGoogleLoading(true);
+    try {
+      const result = await googleLogin(credentialResponse.credential);
+      if (result && result.user && result.user.role === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/');
+      }
+    } catch (err) {
+      setError(err.message || 'Google sign-up failed. Please try again.');
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    setError('Google authentication was cancelled or failed. Please try again.');
   };
 
   const togglePasswordVisibility = () => {
@@ -359,6 +382,48 @@ const Register = () => {
               </AnimatedButton>
             </motion.div>
           </form>
+
+          {/* Divider */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 1.2 }}
+            className="mt-6 flex items-center"
+          >
+            <div className="flex-1 border-t border-gray-700/50" />
+            <span className="mx-4 text-sm text-gray-500">or sign up with</span>
+            <div className="flex-1 border-t border-gray-700/50" />
+          </motion.div>
+
+          {/* Google Sign Up Button */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 1.3 }}
+            className="mt-4 flex justify-center"
+          >
+            {googleLoading ? (
+              <div className="flex items-center justify-center py-3 text-gray-400">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                  className="w-5 h-5 border-2 border-cyan-400 border-t-transparent rounded-full mr-2"
+                />
+                Signing up with Google...
+              </div>
+            ) : (
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={handleGoogleError}
+                useOneTap={false}
+                theme="filled_black"
+                shape="rectangular"
+                text="signup_with"
+                size="large"
+                width="100%"
+              />
+            )}
+          </motion.div>
 
           {/* Footer */}
           <motion.div
