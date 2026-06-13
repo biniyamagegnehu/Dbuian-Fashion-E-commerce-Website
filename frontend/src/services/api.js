@@ -210,6 +210,14 @@ export const reviewsAPI = {
   respond: (id, adminResponse) => api.put(`/api/reviews/${id}/respond`, { adminResponse }),
 };
 
+// Categories API
+export const categoriesAPI = {
+  getAll: (params = {}) => api.get('/api/categories', { params }),
+  create: (data) => api.post('/api/categories', data),
+  update: (id, data) => api.put(`/api/categories/${id}`, data),
+  delete: (id) => api.delete(`/api/categories/${id}`),
+};
+
 // Upload API
 export const uploadAPI = {
   uploadImage: (formData) => api.post('/api/upload', formData, {

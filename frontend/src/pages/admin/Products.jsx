@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Plus, Search, Filter, Package, Edit, Trash2, Eye, X, Upload, Save, Image, ChevronLeft, ChevronRight } from 'lucide-react';
-import { productsAPI, uploadAPI } from '../../services/api';
+import { productsAPI, uploadAPI, categoriesAPI } from '../../services/api';
 import { getImageUrl } from '../../services/api';
 
 
@@ -14,6 +14,7 @@ const Products = () => {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [formData, setFormData] = useState({
     name: '',
     price: '',
@@ -52,18 +53,18 @@ const Products = () => {
   useEffect(() => {
     fetchProducts();
   }, [page, debouncedSearch, selectedCategory, selectedGender, priceRange]);
-  // ─────────────────────────────────────────────────────────────────────────────
 
-  const categories = [
-    'T-Shirts',
-    'Hoodies & Sweatshirts',
-    'Jackets & Coats',
-    'Pants & Trousers',
-    'Jeans',
-    'Dresses',
-    'Skirts',
-    'Footwear'
-  ];
+  // Fetch dynamic categories from backend
+  useEffect(() => {
+    categoriesAPI.getAll({ activeOnly: 'true' })
+      .then(res => {
+        if (res.data.success) {
+          setCategories(res.data.data.map(cat => cat.name));
+        }
+      })
+      .catch(err => console.error('Error loading categories:', err));
+  }, []);
+  // ─────────────────────────────────────────────────────────────────────────────
 
   const genders = ['Men', 'Women', 'Unisex'];
   const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45'];

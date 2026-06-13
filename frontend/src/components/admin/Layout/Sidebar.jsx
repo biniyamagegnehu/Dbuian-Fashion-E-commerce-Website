@@ -7,7 +7,8 @@ import {
   Users, 
   Star,
   LogOut,
-  X
+  X,
+  Tags
 } from 'lucide-react';
 
 const Sidebar = ({ isOpen, onClose }) => {
@@ -16,6 +17,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   const menuItems = [
     { path: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { path: '/admin/categories', icon: Tags, label: 'Categories' },
     { path: '/admin/products', icon: Package, label: 'Products' },
     { path: '/admin/orders', icon: ShoppingCart, label: 'Orders' },
     { path: '/admin/users', icon: Users, label: 'Users' },
