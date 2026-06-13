@@ -116,3 +116,92 @@ exports.getNotifications = async (req, res) => {
     });
   }
 };
+
+// @desc    Get dashboard statistics and growth metrics
+// @route   GET /api/admin/dashboard
+// @access  Private/Admin
+exports.getDashboardStats = async (req, res) => {
+  try {
+    // Define time periods
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+
+    // 1. Get Totals
+    const totalUsers = await User.countDocuments();
+    const totalProducts = await Product.countDocuments();
+    const totalOrders = await Order.countDocuments();
+    const pendingOrders = await Order.countDocuments({ orderStatus: 'pending' });
+
+    // Calculate total revenue
+    const allOrders = await Order.find({ orderStatus: { $ne: 'cancelled' } }, 'totalPrice');
+    const totalRevenue = allOrders.reduce((sum, order) => sum + (order.totalPrice || 0), 0);
+
+    // 2. Calculate Growth Metrics
+    // Helper to calculate percentage growth
+    const calculateGrowth = (current, previous) => {
+      if (previous === 0) return current > 0 ? 100 : 0;
+      const growth = ((current - previous) / previous) * 100;
+      return Number(growth.toFixed(1));
+    };
+
+    // Orders Growth
+    const currentOrders = await Order.find({
+      createdAt: { $gte: thirtyDaysAgo },
+      orderStatus: { $ne: 'cancelled' }
+    });
+    const previousOrders = await Order.find({
+      createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo },
+      orderStatus: { $ne: 'cancelled' }
+    });
+    const orderGrowth = calculateGrowth(currentOrders.length, previousOrders.length);
+
+    // Revenue Growth
+    const currentRevenue = currentOrders.reduce((sum, o) => sum + (o.totalPrice || 0), 0);
+    const previousRevenue = previousOrders.reduce((sum, o) => sum + (o.totalPrice || 0), 0);
+    const revenueGrowth = calculateGrowth(currentRevenue, previousRevenue);
+
+    // Users Growth
+    const currentUsersCount = await User.countDocuments({ createdAt: { $gte: thirtyDaysAgo } });
+    const previousUsersCount = await User.countDocuments({ createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } });
+    const userGrowth = calculateGrowth(currentUsersCount, previousUsersCount);
+
+    // 3. Recent Activity (last 5 orders)
+    const recentOrders = await Order.find()
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select('_id orderId items totalPrice createdAt');
+      
+    const recentActivity = recentOrders.map(order => ({
+      id: order._id,
+      type: 'order',
+      title: `New Order #${order.orderId}`,
+      description: `${order.items.length} items • ETB ${order.totalPrice}`,
+      time: order.createdAt,
+      icon: '📦',
+      color: 'green'
+    }));
+
+    res.json({
+      success: true,
+      stats: {
+        totalUsers,
+        totalOrders,
+        totalProducts,
+        totalRevenue,
+        pendingOrders,
+        revenueGrowth,
+        userGrowth,
+        orderGrowth
+      },
+      recentActivity
+    });
+
+  } catch (error) {
+    console.error('Error computing dashboard stats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while computing dashboard stats'
+    });
+  }
+};

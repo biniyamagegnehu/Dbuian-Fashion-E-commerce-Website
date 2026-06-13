@@ -1,5 +1,5 @@
 const express = require('express');
-const { getNotifications } = require('../controllers/adminController');
+const { getNotifications, getDashboardStats } = require('../controllers/adminController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 
 const router = express.Router();
@@ -9,5 +9,6 @@ router.use(protect);
 router.use(authorize('admin'));
 
 router.get('/notifications', getNotifications);
+router.get('/dashboard', getDashboardStats);
 
 module.exports = router;

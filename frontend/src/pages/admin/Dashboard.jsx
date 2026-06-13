@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { usersAPI, ordersAPI, productsAPI } from '../../services/api';
+import { adminDashboardAPI } from '../../services/api';
 import LoadingSpinner from '../../components/admin/UI/LoadingSpinner';
 import { 
   Users, 
@@ -28,64 +28,26 @@ const Dashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      const [usersRes, ordersRes, productsRes] = await Promise.all([
-        usersAPI.getStats(),
-        ordersAPI.getAll(),
-        productsAPI.getAll()
-      ]);
-
-      const totalRevenue = ordersRes.data.orders.reduce((sum, order) => sum + order.totalPrice, 0);
-      const pendingOrders = ordersRes.data.orders.filter(order => order.orderStatus === 'pending').length;
+      const response = await adminDashboardAPI.getDashboardStats();
+      const data = response.data;
       
-      // Calculate actual growth metrics
-      const revenueGrowth = calculateGrowth(ordersRes.data.orders, 'totalPrice');
-      const userGrowth = usersRes.data.stats?.growth || 8.7;
-      const orderGrowth = calculateGrowth(ordersRes.data.orders, 'count');
-
-      // Generate recent activity from orders with actual timestamps
-      const activity = ordersRes.data.orders
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-        .slice(0, 5)
-        .map(order => ({
-          id: order._id,
-          type: 'order',
-          title: `New Order #${order.orderId}`,
-          description: `${order.items.length} items • ETB ${order.totalPrice}`,
-          time: formatTimeAgo(order.createdAt),
-          icon: '📦',
-          color: 'green',
+      if (data.success) {
+        setStats(data.stats);
+        
+        // Format the recent activity times
+        const formattedActivity = (data.recentActivity || []).map(activity => ({
+          ...activity,
+          time: formatTimeAgo(activity.time),
           onClick: () => navigate('/orders')
         }));
-
-      setStats({
-        totalUsers: usersRes.data.stats?.totalUsers || usersRes.data.users?.length || 0,
-        totalOrders: ordersRes.data.count || ordersRes.data.orders?.length || 0,
-        totalProducts: productsRes.data.total || productsRes.data.products?.length || 0,
-        totalRevenue,
-        pendingOrders,
-        revenueGrowth,
-        userGrowth,
-        orderGrowth
-      });
-
-      setRecentActivity(activity);
-
+        
+        setRecentActivity(formattedActivity);
+      }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
       setLoading(false);
     }
-  };
-
-  const calculateGrowth = (data, field) => {
-    // Simple growth calculation (in real app, you'd compare with previous period)
-    if (!data || data.length === 0) return 12.5;
-    
-    const currentPeriod = data.reduce((sum, item) => sum + (item[field] || 0), 0);
-    const previousPeriod = currentPeriod * 0.85; // Mock previous period data
-    const growth = ((currentPeriod - previousPeriod) / previousPeriod) * 100;
-    
-    return Math.max(0, growth.toFixed(1));
   };
 
   const formatTimeAgo = (dateString) => {

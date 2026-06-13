@@ -186,6 +186,7 @@ export const adminAuthAPI = {
 // Admin Dashboard API
 export const adminDashboardAPI = {
   getNotifications: () => api.get('/api/admin/notifications'),
+  getDashboardStats: () => api.get('/api/admin/dashboard'),
 };
 
 // Users API
