@@ -5,7 +5,8 @@ const {
   updateReview,
   deleteReview,
   getMyReviews,
-  getAllReviews // Add this import
+  getAllReviews,
+  respondToReview
 } = require('../controllers/reviewController');
 const { protect, authorize } = require('../middleware/authMiddleware'); // Add authorize import
 
@@ -21,6 +22,8 @@ router.put('/:id', protect, updateReview);
 router.delete('/:id', protect, deleteReview);
 
 // Admin route - get all reviews
-router.get('/', protect, authorize('admin'), getAllReviews); // Add this route
+router.get('/', protect, authorize('admin'), getAllReviews);
+// Admin route - respond to a review
+router.put('/:id/respond', protect, authorize('admin'), respondToReview);
 
 module.exports = router;

@@ -187,6 +187,7 @@ export const adminAuthAPI = {
 export const usersAPI = {
   getAll: (params = {}) => api.get('/api/users', { params }),
   getById: (id) => api.get(`/api/users/${id}`),
+  create: (userData) => api.post('/api/users', userData),
   update: (id, userData) => api.put(`/api/users/${id}`, userData),
   delete: (id) => api.delete(`/api/users/${id}`),
   getStats: () => api.get('/api/users/stats'),
@@ -200,6 +201,7 @@ export const reviewsAPI = {
   update: (id, reviewData) => api.put(`/api/reviews/${id}`, reviewData),
   delete: (id) => api.delete(`/api/reviews/${id}`),
   getMyReviews: () => api.get('/api/reviews/my-reviews'),
+  respond: (id, adminResponse) => api.put(`/api/reviews/${id}/respond`, { adminResponse }),
 };
 
 // Upload API

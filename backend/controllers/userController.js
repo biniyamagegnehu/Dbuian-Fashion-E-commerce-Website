@@ -2,6 +2,41 @@
 const User = require('../models/User');
 const ErrorResponse = require('../utils/errorResponse');
 
+// @desc    Create user (Admin)
+// @route   POST /api/users
+// @access  Private/Admin
+exports.createUser = async (req, res, next) => {
+  try {
+    const { name, email, password, role, phone, studentId } = req.body;
+
+    // Check if email already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return next(new ErrorResponse('A user with that email already exists', 400));
+    }
+
+    const user = await User.create({
+      name,
+      email,
+      password,
+      role: role || 'user',
+      phone,
+      studentId,
+      authProvider: 'local'
+    });
+
+    // Don't return password
+    user.password = undefined;
+
+    res.status(201).json({
+      success: true,
+      user
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Get all users (Admin)
 // @route   GET /api/users
 // @access  Private/Admin

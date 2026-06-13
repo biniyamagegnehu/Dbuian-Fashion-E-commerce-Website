@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Star, MessageSquare, ThumbsUp, ThumbsDown, Filter, Search, Download, Edit, Trash2 } from 'lucide-react';
+import { Star, MessageSquare, ThumbsUp, ThumbsDown, Filter, Search, Download, Edit, Trash2, X, CheckCircle, AlertCircle, Send } from 'lucide-react';
 import { reviewsAPI } from '../../services/api';
 import LoadingSpinner from '../../components/admin/UI/LoadingSpinner';
 
@@ -23,6 +23,14 @@ const Reviews = () => {
     page: 1, limit: LIMIT, total: 0, pages: 0,
     hasNextPage: false, hasPrevPage: false
   });
+
+  // ─── Respond to Review Modal state ───────────────────────────────────────────
+  const [respondTarget, setRespondTarget] = useState(null); // the review being replied to
+  const [respondText, setRespondText] = useState('');
+  const [respondLoading, setRespondLoading] = useState(false);
+  const [respondError, setRespondError] = useState(null);
+  const [respondSuccess, setRespondSuccess] = useState(false);
+  // ─────────────────────────────────────────────────────────────────────────────
 
   // Debounced search
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -86,6 +94,40 @@ const Reviews = () => {
     } catch (error) {
       console.error('Error deleting review:', error);
       alert('Failed to delete review');
+    }
+  };
+
+  const openRespondModal = (review) => {
+    setRespondTarget(review);
+    setRespondText(review.adminResponse || '');
+    setRespondError(null);
+    setRespondSuccess(false);
+  };
+
+  const closeRespondModal = () => {
+    setRespondTarget(null);
+    setRespondText('');
+    setRespondError(null);
+    setRespondSuccess(false);
+  };
+
+  const handleRespond = async (e) => {
+    e.preventDefault();
+    if (!respondTarget) return;
+    setRespondLoading(true);
+    setRespondError(null);
+    try {
+      const res = await reviewsAPI.respond(respondTarget._id, respondText.trim() || null);
+      // Update the review in local state so badge appears immediately
+      setReviews(prev =>
+        prev.map(r => r._id === respondTarget._id ? { ...r, adminResponse: (res.data?.review?.adminResponse ?? respondText.trim()) || null } : r)
+      );
+      setRespondSuccess(true);
+      setTimeout(closeRespondModal, 1500);
+    } catch (err) {
+      setRespondError(err.response?.data?.message || 'Failed to save response');
+    } finally {
+      setRespondLoading(false);
     }
   };
 
@@ -167,7 +209,7 @@ const Reviews = () => {
   const exportReviews = () => {
     // Simple CSV export functionality
     const headers = ['Product', 'Customer', 'Rating', 'Comment', 'Sentiment', 'Date'];
-    const csvData = filteredReviews.map(review => [
+    const csvData = reviews.map(review => [
       review.product?.name || 'N/A',
       review.user?.name || review.userName || 'Anonymous',
       review.rating,
@@ -216,6 +258,7 @@ const Reviews = () => {
   }
 
   return (
+    <>
     <div className="space-y-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
@@ -238,7 +281,7 @@ const Reviews = () => {
           <button 
             onClick={exportReviews}
             className="btn-primary flex items-center space-x-2"
-            disabled={filteredReviews.length === 0}
+            disabled={reviews.length === 0}
           >
             <Download className="w-4 h-4" />
             <span>Export Reviews</span>
@@ -401,9 +444,13 @@ const Reviews = () => {
                       <td className="py-4 px-4">
                         <div className="flex space-x-2">
                           <button
-                            onClick={() => alert(`Respond to review: ${review.comment}`)}
-                            className="p-2 bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30 transition-colors"
-                            title="Respond to Review"
+                            onClick={() => openRespondModal(review)}
+                            className={`p-2 rounded-lg transition-colors ${
+                              review.adminResponse
+                                ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+                                : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
+                            }`}
+                            title={review.adminResponse ? 'Edit Response' : 'Respond to Review'}
                           >
                             <MessageSquare className="w-4 h-4" />
                           </button>
@@ -471,6 +518,117 @@ const Reviews = () => {
         )}
       </div>
     </div>
+
+      {/* ─── Respond to Review Modal ──────────────────────────────────────────── */}
+      {respondTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={closeRespondModal}
+          />
+
+          {/* Modal Card */}
+          <div className="relative glass-card w-full max-w-lg p-8 space-y-6 z-10">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-white">
+                  {respondTarget.adminResponse ? 'Edit Response' : 'Respond to Review'}
+                </h2>
+                <p className="text-gray-400 text-sm mt-1">
+                  by {respondTarget.user?.name || respondTarget.userName || 'Anonymous'}
+                  {' '}on <span className="text-white">{respondTarget.product?.name || 'Unknown Product'}</span>
+                </p>
+              </div>
+              <button
+                onClick={closeRespondModal}
+                className="p-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-gray-400 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Original Review */}
+            <div className="p-4 bg-white/5 border border-white/10 rounded-lg space-y-2">
+              <div className="flex items-center space-x-2">
+                <div className="flex space-x-1">
+                  {renderStars(respondTarget.rating)}
+                </div>
+                <span className="text-gray-400 text-sm">({respondTarget.rating}/5)</span>
+              </div>
+              <p className="text-gray-300 text-sm italic">
+                &ldquo;{respondTarget.comment || 'No comment provided'}&rdquo;
+              </p>
+            </div>
+
+            {/* Success */}
+            {respondSuccess && (
+              <div className="flex items-center space-x-3 p-4 bg-green-500/20 border border-green-500/30 rounded-lg">
+                <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
+                <span className="text-green-300 font-medium">Response saved!</span>
+              </div>
+            )}
+
+            {/* Error */}
+            {respondError && (
+              <div className="flex items-center space-x-3 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
+                <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+                <span className="text-red-300">{respondError}</span>
+              </div>
+            )}
+
+            {/* Form */}
+            <form onSubmit={handleRespond} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Your Response
+                  <span className="text-gray-500 font-normal ml-2">(leave blank to remove existing response)</span>
+                </label>
+                <textarea
+                  rows={5}
+                  value={respondText}
+                  onChange={e => setRespondText(e.target.value)}
+                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-400 resize-none"
+                  placeholder="Write a helpful response to this review..."
+                  maxLength={1000}
+                />
+                <p className="text-right text-gray-500 text-xs mt-1">{respondText.length}/1000</p>
+              </div>
+
+              <div className="flex space-x-3">
+                <button
+                  type="button"
+                  onClick={closeRespondModal}
+                  className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-gray-300 hover:bg-white/10 transition-colors font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={respondLoading || respondSuccess}
+                  className="flex-1 px-4 py-3 bg-cyan-500 hover:bg-cyan-600 disabled:opacity-60 disabled:cursor-not-allowed rounded-lg text-white font-semibold transition-colors flex items-center justify-center space-x-2"
+                >
+                  {respondLoading ? (
+                    <span>Saving...</span>
+                  ) : respondSuccess ? (
+                    <>
+                      <CheckCircle className="w-4 h-4" />
+                      <span>Saved!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4" />
+                      <span>{respondTarget.adminResponse ? 'Update Response' : 'Send Response'}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

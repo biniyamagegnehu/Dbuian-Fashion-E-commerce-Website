@@ -27,6 +27,11 @@ const reviewSchema = new mongoose.Schema({
     required: [true, 'Please provide a review comment'],
     maxlength: [500, 'Comment cannot be more than 500 characters']
   },
+  adminResponse: {
+    type: String,
+    default: null,
+    maxlength: [1000, 'Admin response cannot exceed 1000 characters']
+  },
   createdAt: {
     type: Date,
     default: Date.now

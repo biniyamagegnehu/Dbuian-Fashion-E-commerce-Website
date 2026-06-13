@@ -246,3 +246,27 @@ exports.getMyReviews = async (req, res, next) => {
     next(error);
   }
 };
+
+// @desc    Admin responds to a review
+// @route   PUT /api/reviews/:id/respond
+// @access  Private/Admin
+exports.respondToReview = async (req, res, next) => {
+  try {
+    const { adminResponse } = req.body;
+
+    const review = await Review.findById(req.params.id);
+    if (!review) {
+      return next(new ErrorResponse('Review not found', 404));
+    }
+
+    review.adminResponse = adminResponse || null;
+    await review.save({ validateBeforeSave: false });
+
+    res.status(200).json({
+      success: true,
+      review
+    });
+  } catch (error) {
+    next(error);
+  }
+};
