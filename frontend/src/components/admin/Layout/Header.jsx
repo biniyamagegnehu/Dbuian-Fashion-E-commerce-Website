@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Menu, Bell, Search, LogOut, Settings, User, Mail } from 'lucide-react';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '../../../context/AuthContext';
 
 const Header = ({ onMenuClick, user }) => {
   const { logout } = useAuth();
