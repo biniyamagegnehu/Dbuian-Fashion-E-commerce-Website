@@ -95,32 +95,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const adminLogin = async (email, password) => {
-    dispatch({ type: 'LOGIN_START' });
-    
-    try {
-      const response = await adminAuthAPI.login({ email, password });
-      const { user, token, message } = response.data;
 
-      // Store in localStorage
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-
-      dispatch({
-        type: 'LOGIN_SUCCESS',
-        payload: { user, token }
-      });
-
-      return { user, message };
-    } catch (error) {
-      const errorMessage = error.message || 'Admin login failed';
-      dispatch({
-        type: 'LOGIN_FAILURE',
-        payload: errorMessage
-      });
-      throw new Error(errorMessage);
-    }
-  };
 
   const register = async (userData) => {
     dispatch({ type: 'LOGIN_START' });
@@ -168,7 +143,6 @@ export const AuthProvider = ({ children }) => {
         isLoading: state.isLoading,
         error: state.error,
         login,
-        adminLogin,
         register,
         logout,
         clearError

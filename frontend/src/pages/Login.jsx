@@ -24,28 +24,26 @@ const Login = () => {
     }));
   };
 
- // In your Login.jsx, add admin login option if needed
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  setError('');
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
 
-  if (!formData.email || !formData.password) {
-    setError('Please fill in all fields');
-    return;
-  }
-
-  try {
-    // Check if it's an admin login (you can add a toggle or detect by email)
-    if (formData.email.includes('admin')) {
-      await adminLogin(formData.email, formData.password);
-    } else {
-      await login(formData.email, formData.password);
+    if (!formData.email || !formData.password) {
+      setError('Please fill in all fields');
+      return;
     }
-    navigate('/');
-  } catch (err) {
-    setError(err.message);
-  }
-};
+
+    try {
+      const response = await login(formData.email, formData.password);
+      if (response && response.user && response.user.role === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/');
+      }
+    } catch (err) {
+      setError(err.message);
+    }
+  };
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
