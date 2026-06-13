@@ -56,6 +56,21 @@ By default, all registered users have the `user` role. To create an admin accoun
 4. Update the `role` field from `"user"` to `"admin"`.
 5. Log in with that account, and you will be redirected to the Admin Dashboard (`/admin/dashboard`).
 
+### Google OAuth Setup
+This project uses **Google Identity Services** for Google login/registration.
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/).
+2. Create a new project or select an existing one.
+3. Navigate to **APIs & Services → Credentials**.
+4. Click **Create Credentials → OAuth 2.0 Client IDs**.
+5. Set application type to **Web Application**.
+6. Add your frontend URL to **Authorized JavaScript origins** (e.g. `http://localhost:5173`).
+7. Copy the **Client ID**.
+8. Add it to `backend/.env` as `GOOGLE_CLIENT_ID=<your_client_id>`.
+9. Add it to `frontend/.env` as `VITE_GOOGLE_CLIENT_ID=<your_client_id>`.
+
+> **Important:** Do NOT commit real Client IDs or secrets to version control.
+
 ### Running the Services
 Start backend:
 ```bash
