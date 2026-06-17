@@ -1,10 +1,11 @@
 // backend/scripts/updateUserRole.js
 const mongoose = require('mongoose');
+require('dotenv').config();
 
 const updateUserRole = async () => {
   try {
     // Connect to MongoDB - use your actual database name
-    const MONGODB_URI = 'mongodb+srv://biniyamagegnehu_db:%40biniyamnohaminmd@dbuian-fashion-cluster.4r8bx9f.mongodb.net/dbuian_fashion?retryWrites=true&w=majority&appName=dbuian-fashion-cluster'; // Replace with your DB name
+    const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/dbuian_fashion';
     await mongoose.connect(MONGODB_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,

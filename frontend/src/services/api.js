@@ -4,7 +4,9 @@ import axios from 'axios';
 // Backend URL - use your working Render URL
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
-console.log('🚀 API Base URL:', API_BASE_URL);
+if (import.meta.env.DEV) {
+  console.log('API Base URL:', API_BASE_URL);
+}
 
 // Create axios instance
 const api = axios.create({
@@ -25,11 +27,15 @@ api.interceptors.request.use(
       config.headers['Content-Type'] = 'application/json';
     }
     
-    console.log(`➡️ ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
+    if (import.meta.env.DEV) {
+      console.log(`Request: ${config.method?.toUpperCase()} ${config.baseURL || ''}${config.url}`);
+    }
     return config;
   },
   (error) => {
-    console.error('❌ Request Error:', error);
+    if (import.meta.env.DEV) {
+      console.error('Request Error:', error);
+    }
     return Promise.reject(error);
   }
 );
@@ -37,16 +43,20 @@ api.interceptors.request.use(
 // Response interceptor
 api.interceptors.response.use(
   (response) => {
-    console.log(`✅ ${response.status} ${response.config.url}`, response.data);
+    if (import.meta.env.DEV) {
+      console.log(`Response: ${response.status} ${response.config.url}`);
+    }
     return response;
   },
   (error) => {
-    console.error('❌ Response Error:', {
-      url: error.config?.url,
-      status: error.response?.status,
-      message: error.message,
-      data: error.response?.data
-    });
+    if (import.meta.env.DEV) {
+      console.error('Response Error:', {
+        url: error.config?.url,
+        status: error.response?.status,
+        message: error.message,
+        data: error.response?.data
+      });
+    }
     
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
@@ -60,12 +70,18 @@ api.interceptors.response.use(
 // Test backend connection
 export const testBackendConnection = async () => {
   try {
-    console.log('🧪 Testing backend connection...');
+    if (import.meta.env.DEV) {
+      console.log('Testing backend connection...');
+    }
     const response = await api.get('/api/health');
-    console.log('✅ Backend connection successful:', response.data);
+    if (import.meta.env.DEV) {
+      console.log('Backend connection successful:', response.data);
+    }
     return response.data;
   } catch (error) {
-    console.error('❌ Backend connection failed:', error);
+    if (import.meta.env.DEV) {
+      console.error('Backend connection failed:', error);
+    }
     throw error;
   }
 };
@@ -74,17 +90,20 @@ export const testBackendConnection = async () => {
 export const productsAPI = {
   getAll: async (params = {}) => {
     try {
-      console.log('📦 Fetching products with params:', params);
+      if (import.meta.env.DEV) {
+        console.log('Fetching products with params:', params);
+      }
       
       const response = await api.get('/api/products', { params });
-      console.log('✅ Products response:', response.data);
       
       // Your backend returns { products: [], count, total, etc. }
       return {
         data: response.data // Directly return backend response
       };
     } catch (error) {
-      console.error('❌ Error fetching products:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error fetching products:', error);
+      }
       // Return empty data structure that matches your component expectations
       return {
         data: {
@@ -108,7 +127,9 @@ export const productsAPI = {
         }
       };
     } catch (error) {
-      console.error('❌ Error fetching product:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error fetching product:', error);
+      }
       throw error;
     }
   },
@@ -124,7 +145,9 @@ export const productsAPI = {
         data: response.data // Direct backend response
       };
     } catch (error) {
-      console.error('❌ Error fetching featured products:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error fetching featured products:', error);
+      }
       return {
         data: {
           products: [],
@@ -142,7 +165,9 @@ export const productsAPI = {
         data: response.data // Direct backend response
       };
     } catch (error) {
-      console.error('❌ Error fetching trending products:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error fetching trending products:', error);
+      }
       return {
         data: {
           products: [],
@@ -234,28 +259,40 @@ export const uploadAPI = {
 // src/services/api.js - ENHANCED getImageUrl
 export const getImageUrl = (imagePath) => {
   if (!imagePath) {
-    console.log('🖼️ Main Website: No image path provided');
+    if (import.meta.env.DEV) {
+      console.log('Image processing: No image path provided');
+    }
     return '/images/placeholder.jpg';
   }
 
-  console.log('🖼️ Main Website Processing:', imagePath, 'Type:', typeof imagePath);
+  if (import.meta.env.DEV) {
+    console.log('Image processing path:', imagePath, 'Type:', typeof imagePath);
+  }
 
   // Handle object format
   if (typeof imagePath === 'object' && imagePath !== null) {
-    console.log('🖼️ Main Website: Image is object with keys:', Object.keys(imagePath));
+    if (import.meta.env.DEV) {
+      console.log('Image processing: Image is object with keys:', Object.keys(imagePath));
+    }
     
     // Priority order for object URLs
     if (imagePath.secure_url) {
-      console.log('🖼️ Main Website: Using secure_url:', imagePath.secure_url);
+      if (import.meta.env.DEV) {
+        console.log('Image processing: Using secure_url:', imagePath.secure_url);
+      }
       return imagePath.secure_url;
     }
     if (imagePath.url) {
-      console.log('🖼️ Main Website: Using url:', imagePath.url);
+      if (import.meta.env.DEV) {
+        console.log('Image processing: Using url:', imagePath.url);
+      }
       // Recursively process the URL string
       return getImageUrl(imagePath.url);
     }
     
-    console.log('🖼️ Main Website: Unknown object format, using placeholder');
+    if (import.meta.env.DEV) {
+      console.log('Image processing: Unknown object format, using placeholder');
+    }
     return '/images/placeholder.jpg';
   }
 
@@ -263,13 +300,17 @@ export const getImageUrl = (imagePath) => {
   if (typeof imagePath === 'string') {
     // Already a full URL
     if (imagePath.startsWith('http')) {
-      console.log('🖼️ Main Website: Already full URL:', imagePath);
+      if (import.meta.env.DEV) {
+        console.log('Image processing: Already full URL:', imagePath);
+      }
       return imagePath;
     }
 
     // Cloudinary URL
     if (imagePath.includes('cloudinary.com')) {
-      console.log('🖼️ Main Website: Cloudinary URL:', imagePath);
+      if (import.meta.env.DEV) {
+        console.log('Image processing: Cloudinary URL:', imagePath);
+      }
       return imagePath;
     }
 
@@ -286,7 +327,9 @@ export const getImageUrl = (imagePath) => {
       }
       
       const fullUrl = `${API_BASE_URL}${cleanPath}`;
-      console.log('🖼️ Main Website: Constructed mock URL:', fullUrl);
+      if (import.meta.env.DEV) {
+        console.log('Image processing: Constructed mock URL:', fullUrl);
+      }
       return fullUrl;
     }
 
@@ -294,31 +337,30 @@ export const getImageUrl = (imagePath) => {
     if (imagePath.startsWith('/uploads/') || imagePath.startsWith('uploads/')) {
       const cleanPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
       const fullUrl = `${API_BASE_URL}${cleanPath}`;
-      console.log('🖼️ Main Website: Constructed upload URL:', fullUrl);
+      if (import.meta.env.DEV) {
+        console.log('Image processing: Constructed upload URL:', fullUrl);
+      }
       return fullUrl;
     }
 
     // If it's just a filename with extension, assume it's a mock image
     if (imagePath.match(/\.(jpg|jpeg|png|webp|gif)$/i)) {
       const fullUrl = `${API_BASE_URL}/api/mock-images/${imagePath}`;
-      console.log('🖼️ Main Website: Constructed filename URL:', fullUrl);
+      if (import.meta.env.DEV) {
+        console.log('Image processing: Constructed filename URL:', fullUrl);
+      }
       return fullUrl;
     }
   }
 
   // Unknown format
-  console.log('🖼️ Main Website: Unknown image format, using placeholder');
+  if (import.meta.env.DEV) {
+    console.log('Image processing: Unknown image format, using placeholder');
+  }
   return '/images/placeholder.jpg';
 };
 
 // Health check
 export const healthCheck = () => api.get('/api/health');
-
-// Initialize connection test
-testBackendConnection().then(() => {
-  console.log('🎉 Frontend-backend connection established!');
-}).catch(() => {
-  console.log('⚠️ Connection test failed on startup');
-});
 
 export default api;

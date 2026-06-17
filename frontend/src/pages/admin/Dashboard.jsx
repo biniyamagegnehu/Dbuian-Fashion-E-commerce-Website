@@ -38,7 +38,7 @@ const Dashboard = () => {
         const formattedActivity = (data.recentActivity || []).map(activity => ({
           ...activity,
           time: formatTimeAgo(activity.time),
-          onClick: () => navigate('/orders')
+          onClick: () => navigate('/admin/orders')
         }));
         
         setRecentActivity(formattedActivity);
@@ -127,12 +127,12 @@ const Dashboard = () => {
   );
 
   // Navigation handlers
-  const handleViewUsers = () => navigate('/users');
-  const handleViewOrders = () => navigate('/orders');
-  const handleViewProducts = () => navigate('/products');
-  const handleViewAnalytics = () => navigate('/analytics');
-  const handleAddProduct = () => navigate('/products?action=add');
-  const handleViewPendingOrders = () => navigate('/orders?status=pending');
+  const handleViewUsers = () => navigate('/admin/users');
+  const handleViewOrders = () => navigate('/admin/orders');
+  const handleViewProducts = () => navigate('/admin/products');
+  const handleViewAnalytics = () => navigate('/admin/dashboard');
+  const handleAddProduct = () => navigate('/admin/products?action=add');
+  const handleViewPendingOrders = () => navigate('/admin/orders?status=pending');
 
   if (loading) {
     return (
