@@ -37,7 +37,13 @@ exports.getProducts = async (req, res, next) => {
 
     // Size filter
     if (size && size !== 'all') {
-      query.size = size;
+      const sizeFilter = { $or: [{ size }, { 'variants.size': size }] };
+      if (query.$or) {
+        query.$and = query.$and || [];
+        query.$and.push(sizeFilter);
+      } else {
+        query.$or = sizeFilter.$or;
+      }
     }
 
     // Price range filter

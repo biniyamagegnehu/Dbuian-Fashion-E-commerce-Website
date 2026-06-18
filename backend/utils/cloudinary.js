@@ -9,12 +9,6 @@ if (!fs.existsSync(mockStorageDir)) {
   fs.mkdirSync(mockStorageDir, { recursive: true });
 }
 
-// ✅ FIXED: Always use production URL for mock images
-const getBackendUrl = () => {
-  // Use production URL in all environments
-  return 'https://dbuianfashion.onrender.com';
-};
-
 // Mock upload function that stores actual images
 const mockUploadImage = async (file, folder = 'dbuian_fashion') => {
   console.log('Using mock upload for:', file.originalname);
@@ -27,10 +21,8 @@ const mockUploadImage = async (file, folder = 'dbuian_fashion') => {
   
   fs.writeFileSync(filePath, file.buffer);
   
-  // ✅ FIXED: Always use production URL
-  const backendUrl = getBackendUrl();
   const mockResponse = {
-    secure_url: `${backendUrl}/api/mock-images/${uniqueFilename}`,
+    secure_url: `/api/mock-images/${uniqueFilename}`,
     public_id: `mock_${uniqueFilename}`,
     bytes: file.size,
     format: file.mimetype.split('/')[1] || 'jpg',

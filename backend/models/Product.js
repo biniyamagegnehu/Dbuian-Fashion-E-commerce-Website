@@ -13,6 +13,33 @@ const productSchema = new mongoose.Schema({
     required: [true, 'Please provide a product price'],
     min: [0, 'Price cannot be negative']
   },
+  variants: [
+    {
+      size: {
+        type: String,
+        enum: ['XS', 'S', 'M', 'L', 'XL', 'XXL', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45']
+      },
+      color: String,
+      sku: String,
+      stock: {
+        type: Number,
+        min: [0, 'Stock cannot be negative'],
+        default: 0
+      },
+      price: {
+        type: Number,
+        min: [0, 'Price cannot be negative']
+      },
+      image: {
+        url: String,
+        public_id: String
+      },
+      isActive: {
+        type: Boolean,
+        default: true
+      }
+    }
+  ],
   category: {
     type: String,
     required: [true, 'Please provide a product category']

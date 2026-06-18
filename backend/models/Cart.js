@@ -14,10 +14,13 @@ const cartSchema = new mongoose.Schema({
       ref: 'Product',
       required: true
     },
+    variantId: String,
+    sku: String,
     size: {
       type: String,
       required: true
     },
+    color: String,
     quantity: {
       type: Number,
       required: true,

@@ -35,26 +35,59 @@ exports.createOrder = async (req, res, next) => {
         return next(new ErrorResponse(`Product not found: ${item.product}`, 404));
       }
 
-      console.log(`📦 Processing product: ${product.name}, Stock: ${product.stock}, Requested: ${item.quantity}`);
-
-      if (product.stock < item.quantity) {
-        return next(new ErrorResponse(`Insufficient stock for ${product.name}. Only ${product.stock} available`, 400));
+      if (!item.quantity || item.quantity < 1) {
+        return next(new ErrorResponse('Invalid quantity for order item', 400));
       }
 
-      const itemTotal = product.price * item.quantity;
-      itemsPrice += itemTotal;
+      console.log(`📦 Processing product: ${product.name}, Stock: ${product.stock}, Requested: ${item.quantity}`);
+
+      let selectedVariant = null;
+      if (product.variants && product.variants.length > 0) {
+        if (item.variantId) {
+          selectedVariant = product.variants.id(item.variantId) || product.variants.find(v => v._id.toString() === item.variantId);
+        }
+        if (!selectedVariant && item.size) {
+          selectedVariant = product.variants.find(v => v.size === item.size && (!item.color || v.color === item.color));
+        }
+
+        if (!selectedVariant) {
+          return next(new ErrorResponse(`Selected product variant is not available for ${product.name}`, 400));
+        }
+
+        if (!selectedVariant.isActive) {
+          return next(new ErrorResponse(`Selected product variant is not active for ${product.name}`, 400));
+        }
+
+        if (selectedVariant.stock < item.quantity) {
+          return next(new ErrorResponse(`Insufficient stock for ${product.name} variant. Only ${selectedVariant.stock} available`, 400));
+        }
+      } else {
+        if (product.stock < item.quantity) {
+          return next(new ErrorResponse(`Insufficient stock for ${product.name}. Only ${product.stock} available`, 400));
+        }
+      }
+
+      const itemPrice = selectedVariant?.price || product.price;
+      itemsPrice += itemPrice * item.quantity;
 
       orderItems.push({
         product: item.product,
+        variantId: selectedVariant ? selectedVariant._id.toString() : undefined,
         name: product.name,
-        image: product.images[0]?.url || '/images/default-product.jpg',
-        price: product.price,
-        size: item.size,
+        image: selectedVariant?.image?.url || product.images[0]?.url || '/images/default-product.jpg',
+        price: itemPrice,
+        size: selectedVariant?.size || item.size,
+        color: selectedVariant?.color || item.color,
+        sku: selectedVariant?.sku,
         quantity: item.quantity
       });
 
-      // Update product stock
-      product.stock -= item.quantity;
+      // Update stock on variant or product
+      if (selectedVariant) {
+        selectedVariant.stock -= item.quantity;
+      } else {
+        product.stock -= item.quantity;
+      }
       await product.save();
       console.log(`✅ Stock updated for ${product.name}: ${product.stock + item.quantity} -> ${product.stock}`);
     }

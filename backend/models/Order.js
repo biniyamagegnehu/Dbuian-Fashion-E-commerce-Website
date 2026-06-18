@@ -17,10 +17,13 @@ const orderSchema = new mongoose.Schema({
       ref: 'Product',
       required: true
     },
+    variantId: String,
     name: String,
     image: String,
     price: Number,
     size: String,
+    color: String,
+    sku: String,
     quantity: {
       type: Number,
       required: true,

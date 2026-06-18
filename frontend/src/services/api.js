@@ -298,6 +298,24 @@ export const getImageUrl = (imagePath) => {
 
   // Handle string paths
   if (typeof imagePath === 'string') {
+    const mockImagePath = imagePath.match(/\/api\/mock-images\/[^?#]+/);
+    if (mockImagePath) {
+      const fullUrl = `${API_BASE_URL}${mockImagePath[0]}`;
+      if (import.meta.env.DEV) {
+        console.log('Image processing: Rewriting mock image URL:', fullUrl);
+      }
+      return fullUrl;
+    }
+
+    const uploadPath = imagePath.match(/\/uploads\/[^?#]+/);
+    if (uploadPath) {
+      const fullUrl = `${API_BASE_URL}${uploadPath[0]}`;
+      if (import.meta.env.DEV) {
+        console.log('Image processing: Rewriting upload URL:', fullUrl);
+      }
+      return fullUrl;
+    }
+
     // Already a full URL
     if (imagePath.startsWith('http')) {
       if (import.meta.env.DEV) {
