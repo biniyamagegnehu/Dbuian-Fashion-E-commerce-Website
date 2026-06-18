@@ -4,21 +4,19 @@ const Product = require('../models/Product');
 const ErrorResponse = require('../utils/errorResponse');
 
 // @desc    Create new order
-// @route   POST /api/orders
+// @route   POST /api/orders
 // @access  Private
 exports.createOrder = async (req, res, next) => {
   try {
     const {
       items,
       shippingInfo,
-      paymentMethod = 'cash_on_delivery'
+      paymentMethod = 'chapa'
     } = req.body;
 
     console.log('🔄 Creating new order for user:', req.user.id);
     console.log('📦 Order items:', items);
     console.log('🏠 Shipping info:', shippingInfo);
-
-    // Validate items array
     if (!items || !Array.isArray(items) || items.length === 0) {
       return next(new ErrorResponse('No items in order', 400));
     }
@@ -111,13 +109,18 @@ exports.createOrder = async (req, res, next) => {
       shippingInfo,
       paymentInfo: {
         method: paymentMethod,
-        status: paymentMethod === 'cash_on_delivery' ? 'pending' : 'processing'
+        status: 'pending'
       },
       itemsPrice,
       taxPrice,
       shippingPrice,
       totalPrice,
-      orderStatus: 'pending'
+      orderStatus: 'pending',
+      statusHistory: [{
+        status: 'pending',
+        note: paymentMethod === 'chapa' ? 'Order created, waiting for Chapa payment' : 'Order created',
+        changedBy: req.user.id
+      }]
     };
 
     console.log('📝 Creating order with data:', orderData);
@@ -170,9 +173,14 @@ exports.getOrder = async (req, res, next) => {
       return next(new ErrorResponse('Not authorized to access this order', 401));
     }
 
+    const responseOrder = order.toObject();
+    if (req.user.role !== 'admin') {
+      delete responseOrder.adminNotes;
+    }
+
     res.status(200).json({
       success: true,
-      order
+      order: responseOrder
     });
   } catch (error) {
     next(error);
@@ -184,7 +192,7 @@ exports.getOrder = async (req, res, next) => {
 // @access  Private
 exports.getMyOrders = async (req, res, next) => {
   try {
-    const orders = await Order.find({ user: req.user.id }).sort('-createdAt');
+    const orders = await Order.find({ user: req.user.id }).select('-adminNotes').sort('-createdAt');
 
     res.status(200).json({
       success: true,
@@ -303,7 +311,14 @@ exports.getOrders = async (req, res, next) => {
 // @access  Private/Admin
 exports.updateOrderStatus = async (req, res, next) => {
   try {
-    const { status } = req.body;
+    const {
+      status,
+      trackingNumber,
+      shippingCarrier,
+      estimatedDeliveryDate,
+      note,
+      adminNotes
+    } = req.body;
 
     const order = await Order.findById(req.params.id);
 
@@ -311,10 +326,48 @@ exports.updateOrderStatus = async (req, res, next) => {
       return next(new ErrorResponse('Order not found', 404));
     }
 
-    order.orderStatus = status;
+    const previousStatus = order.orderStatus;
+
+    if (status) {
+      order.orderStatus = status;
+    }
+
+    if (trackingNumber !== undefined) {
+      order.trackingNumber = trackingNumber;
+    }
+
+    if (shippingCarrier !== undefined) {
+      order.shippingCarrier = shippingCarrier;
+    }
+
+    if (estimatedDeliveryDate !== undefined) {
+      order.estimatedDeliveryDate = estimatedDeliveryDate ? new Date(estimatedDeliveryDate) : undefined;
+    }
+
+    if (adminNotes !== undefined) {
+      order.adminNotes = adminNotes;
+    }
     
-    if (status === 'delivered') {
+    if (status === 'shipped' && !order.shippedAt) {
+      order.shippedAt = Date.now();
+    }
+
+    if (status === 'delivered' && !order.deliveredAt) {
       order.deliveredAt = Date.now();
+    }
+
+    if (
+      status ||
+      trackingNumber !== undefined ||
+      shippingCarrier !== undefined ||
+      estimatedDeliveryDate !== undefined ||
+      note
+    ) {
+      order.statusHistory.push({
+        status: order.orderStatus,
+        note: note || (status && status !== previousStatus ? `Status changed from ${previousStatus} to ${status}` : 'Tracking information updated'),
+        changedBy: req.user.id
+      });
     }
 
     await order.save();

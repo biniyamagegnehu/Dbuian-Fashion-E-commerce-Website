@@ -30,6 +30,7 @@ const Orders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedOrder, setExpandedOrder] = useState(null);
+  const [trackingForms, setTrackingForms] = useState({});
   const [stats, setStats] = useState({
     total: 0,
     pending: 0,
@@ -155,6 +156,35 @@ const Orders = () => {
     }
   };
 
+  const handleTrackingChange = (orderId, field, value) => {
+    setTrackingForms((prev) => ({
+      ...prev,
+      [orderId]: {
+        ...(prev[orderId] || {}),
+        [field]: value
+      }
+    }));
+  };
+
+  const saveTrackingInfo = async (order) => {
+    try {
+      const draft = trackingForms[order._id] || {};
+      await ordersAPI.updateStatus(order._id, {
+        status: draft.status || order.orderStatus,
+        trackingNumber: draft.trackingNumber ?? order.trackingNumber,
+        shippingCarrier: draft.shippingCarrier ?? order.shippingCarrier,
+        estimatedDeliveryDate: draft.estimatedDeliveryDate ?? order.estimatedDeliveryDate,
+        adminNotes: draft.adminNotes ?? order.adminNotes,
+        note: draft.note || 'Tracking information updated'
+      });
+      await fetchOrders();
+      setTrackingForms((prev) => ({ ...prev, [order._id]: {} }));
+    } catch (error) {
+      console.error('Error saving tracking info:', error);
+      alert('Failed to save tracking information');
+    }
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'pending': return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
@@ -212,6 +242,7 @@ const Orders = () => {
     const timeRemaining = getTimeRemaining(order.createdAt);
     const deliveryProgress = getDeliveryProgress(order);
     const isUrgent = isOrderUrgent(order.createdAt);
+    const trackingDraft = trackingForms[order._id] || {};
 
     return (
       <div className="mt-4 bg-gray-800/30 rounded-lg border border-gray-700/50 p-6">
@@ -427,6 +458,66 @@ const Orders = () => {
           </div>
         </div>
 
+        {/* Tracking Management */}
+        <div className="mt-6 p-4 bg-gray-700/30 rounded-lg border border-gray-700/50">
+          <h4 className="text-white font-semibold mb-4 flex items-center">
+            <Truck className="w-4 h-4 mr-2 text-cyan-400" />
+            Tracking Information
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+            <input
+              type="text"
+              placeholder="Tracking number"
+              value={trackingDraft.trackingNumber ?? order.trackingNumber ?? ''}
+              onChange={(e) => handleTrackingChange(order._id, 'trackingNumber', e.target.value)}
+              className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-400"
+            />
+            <input
+              type="text"
+              placeholder="Shipping carrier"
+              value={trackingDraft.shippingCarrier ?? order.shippingCarrier ?? ''}
+              onChange={(e) => handleTrackingChange(order._id, 'shippingCarrier', e.target.value)}
+              className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-400"
+            />
+            <input
+              type="date"
+              value={
+                trackingDraft.estimatedDeliveryDate ??
+                (order.estimatedDeliveryDate ? new Date(order.estimatedDeliveryDate).toISOString().slice(0, 10) : '')
+              }
+              onChange={(e) => handleTrackingChange(order._id, 'estimatedDeliveryDate', e.target.value)}
+              className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-400"
+            />
+            <button
+              onClick={() => saveTrackingInfo(order)}
+              className="px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors"
+            >
+              Save Tracking
+            </button>
+          </div>
+          <textarea
+            placeholder="Admin note or tracking update note"
+            value={trackingDraft.note ?? ''}
+            onChange={(e) => handleTrackingChange(order._id, 'note', e.target.value)}
+            className="mt-3 w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cyan-400"
+            rows={2}
+          />
+          {order.statusHistory?.length > 0 && (
+            <div className="mt-4 space-y-2">
+              <h5 className="text-gray-300 font-medium">Status History</h5>
+              {order.statusHistory.slice().reverse().map((entry, index) => (
+                <div key={`${entry.status}-${entry.changedAt}-${index}`} className="text-sm text-gray-300 bg-white/5 rounded-lg p-3">
+                  <span className="capitalize text-cyan-300">{entry.status}</span>
+                  {entry.note && <span className="ml-2">- {entry.note}</span>}
+                  <span className="block text-gray-500">
+                    {entry.changedAt ? formatDate(entry.changedAt) : 'Date unavailable'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Delivery Instructions */}
         <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
           <h4 className="text-blue-400 font-semibold mb-2 flex items-center">
@@ -457,7 +548,7 @@ const Orders = () => {
       'Status', 'Payment Method', 'Order Date', 'Delivery Date', 'Time Remaining'
     ];
     
-    const csvData = filteredOrders.map(order => {
+    const csvData = orders.map(order => {
       const timeRemaining = getTimeRemaining(order.createdAt);
       return [
         order.orderId || order._id,

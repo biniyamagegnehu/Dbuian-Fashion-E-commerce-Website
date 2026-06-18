@@ -10,6 +10,8 @@ import Products from './pages/Products';
 import ProductDetail from './pages/ProductDetail';
 import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
+import PaymentResult from './pages/PaymentResult';
+import MyOrders from './pages/MyOrders';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import About from './pages/About';
@@ -70,6 +72,9 @@ function AppContent() {
             <Route path="/product/:id" element={<AnimatedPage><ProductDetail /></AnimatedPage>} />
             <Route path="/cart" element={<AnimatedPage><Cart /></AnimatedPage>} />
             <Route path="/checkout" element={<PrivateRoute><AnimatedPage><Checkout /></AnimatedPage></PrivateRoute>} />
+            <Route path="/payment/success" element={<PrivateRoute><AnimatedPage><PaymentResult /></AnimatedPage></PrivateRoute>} />
+            <Route path="/order-success" element={<PrivateRoute><AnimatedPage><PaymentResult /></AnimatedPage></PrivateRoute>} />
+            <Route path="/my-orders" element={<PrivateRoute><AnimatedPage><MyOrders /></AnimatedPage></PrivateRoute>} />
             <Route path="/login" element={<AnimatedPage><Login /></AnimatedPage>} />
             <Route path="/register" element={<AnimatedPage><Register /></AnimatedPage>} />
             <Route path="/about" element={<AnimatedPage><About /></AnimatedPage>} />

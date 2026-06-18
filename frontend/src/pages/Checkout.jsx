@@ -5,7 +5,7 @@ import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import GlassCard from "../components/ui/GlassCard";
 import AnimatedButton from "../components/ui/AnimatedButton";
-import { ordersAPI } from "../services/api";
+import { getImageUrl, ordersAPI, paymentsAPI } from "../services/api";
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -13,6 +13,7 @@ const Checkout = () => {
   const { user, isAuthenticated } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("chapa");
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -215,7 +216,7 @@ const Checkout = () => {
           blockNumber: formData.blockNumber.trim(),
           roomDormNumber: formData.roomDormNumber.trim(),
         },
-        paymentMethod: "cash_on_delivery",
+        paymentMethod,
       };
 
       console.log(
@@ -239,27 +240,17 @@ const Checkout = () => {
         );
       }
 
-      // Send order to backend
-      console.log("🚀 Sending order to backend...");
-      const response = await ordersAPI.create(orderData);
-      console.log("✅ Order created successfully!", response);
-      console.log("📋 Response data:", response.data);
+      // Initialize Chapa payment
+      console.log("🚀 Initializing Chapa payment...");
+      const paymentResponse = await paymentsAPI.initializeChapa(orderData);
+      const checkoutUrl = paymentResponse.data?.checkoutUrl;
 
-      const order = response.data.order || response.data;
-      console.log("🎉 Order details:", order);
+      if (!checkoutUrl) {
+        throw new Error("Unable to start Chapa checkout. Please try again.");
+      }
 
-      // Clear cart
-      clearCart();
-      console.log("🛒 Cart cleared");
-
-      // Navigate to order success page
-      console.log("📍 Navigating to order success page...");
-      navigate("/order-success", {
-        state: {
-          orderId: order.orderId || order._id,
-          orderDetails: order,
-        },
-      });
+      console.log("✅ Payment initialized! Redirecting to Chapa...", checkoutUrl);
+      window.location.href = checkoutUrl;
     } catch (error) {
       console.error("❌ === ORDER CREATION FAILED ===");
       console.error("❌ Error name:", error.name);
@@ -587,7 +578,7 @@ const Checkout = () => {
                     >
                       <div className="flex items-start space-x-3">
                         <img
-                          src={item.image}
+                          src={getImageUrl(item.image)}
                           alt={item.name}
                           className="w-16 h-16 object-cover rounded-lg"
                         />
@@ -611,6 +602,23 @@ const Checkout = () => {
                 </div>
 
                 <div className="border-t border-gray-700 mt-6 pt-6 space-y-3">
+                  <div className="space-y-3 pb-4">
+                    <h3 className="text-gray-300 font-semibold">
+                      Payment Method
+                    </h3>
+                    <div className="flex items-center justify-between p-3 bg-gray-800/50 border border-cyan-400/30 rounded-lg">
+                      <span>
+                        <span className="block text-gray-300">
+                          Pay with Chapa
+                        </span>
+                        <span className="block text-xs text-cyan-300">
+                          Ethiopian cards, bank, and mobile payment options
+                        </span>
+                      </span>
+                      <div className="w-4 h-4 rounded-full border-4 border-cyan-400 bg-gray-800"></div>
+                    </div>
+                  </div>
+
                   <div className="flex justify-between">
                     <span className="text-gray-400">Subtotal</span>
                     <span className="text-gray-300">
@@ -683,7 +691,8 @@ const Checkout = () => {
                             clipRule="evenodd"
                           />
                         </svg>
-                        Confirm Order - {formatPrice(total)}
+                        Continue to Chapa{" "}
+                        - {formatPrice(total)}
                       </div>
                     )}
                   </AnimatedButton>
@@ -781,6 +790,10 @@ const Checkout = () => {
                         </span>
                       </div>
                       <div className="flex justify-between">
+                        <span className="text-gray-400">Payment:</span>
+                        <span className="text-white">Chapa</span>
+                      </div>
+                      <div className="flex justify-between">
                         <span className="text-gray-400">Total Amount:</span>
                         <span className="text-cyan-400 font-semibold">
                           {formatPrice(total)}
@@ -810,8 +823,8 @@ const Checkout = () => {
                   {/* Note */}
                   <p className="text-xs text-gray-500 mt-4">
                     {isProcessing
-                      ? "Creating your order..."
-                      : "You'll be redirected to the order success page after confirmation"}
+                      ? "Opening Chapa..."
+                      : "You will be redirected to Chapa to complete payment"}
                   </p>
                 </div>
               </motion.div>

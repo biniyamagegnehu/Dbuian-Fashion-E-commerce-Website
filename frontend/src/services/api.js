@@ -187,9 +187,19 @@ export const ordersAPI = {
   getAll: (params = {}) => api.get('/api/orders', { params }),
   getById: (id) => api.get(`/api/orders/${id}`),
   create: (orderData) => api.post('/api/orders', orderData),
-  updateStatus: (id, status) => api.put(`/api/orders/${id}/status`, { status }),
+  updateStatus: (id, statusOrData) =>
+    api.put(
+      `/api/orders/${id}/status`,
+      typeof statusOrData === 'string' ? { status: statusOrData } : statusOrData,
+    ),
   getUserOrders: () => api.get('/api/orders/myorders'),
   delete: (id) => api.delete(`/api/orders/${id}`),
+};
+
+// Payments API
+export const paymentsAPI = {
+  initializeChapa: (checkoutData) => api.post('/api/payments/chapa/initialize', checkoutData),
+  verifyChapa: (txRef) => api.get(`/api/payments/chapa/verify/${encodeURIComponent(txRef)}`),
 };
 
 // Auth API

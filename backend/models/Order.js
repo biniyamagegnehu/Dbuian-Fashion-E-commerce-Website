@@ -56,12 +56,16 @@ const orderSchema = new mongoose.Schema({
     id: String,
     status: {
       type: String,
+      enum: ['pending', 'processing', 'paid', 'failed', 'cancelled', 'refunded'],
       default: 'pending'
     },
     method: {
       type: String,
       default: 'cash_on_delivery'
-    }
+    },
+    txRef: String,
+    chapaReference: String,
+    paidAt: Date
   },
   itemsPrice: {
     type: Number,
@@ -86,10 +90,27 @@ const orderSchema = new mongoose.Schema({
   orderStatus: {
     type: String,
     required: true,
-    enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'],
+    enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded'],
     default: 'pending'
   },
+  trackingNumber: String,
+  shippingCarrier: String,
+  estimatedDeliveryDate: Date,
+  shippedAt: Date,
   deliveredAt: Date,
+  adminNotes: String,
+  statusHistory: [{
+    status: String,
+    note: String,
+    changedBy: {
+      type: mongoose.Schema.ObjectId,
+      ref: 'User'
+    },
+    changedAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
   createdAt: {
     type: Date,
     default: Date.now
