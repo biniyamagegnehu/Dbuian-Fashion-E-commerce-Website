@@ -41,7 +41,13 @@ exports.register = async (req, res, next) => {
     } catch (emailError) {
       // Clean up: remove the newly created user so they can try again
       await User.findByIdAndDelete(user._id);
-      console.error('Verification email failed:', emailError.message);
+      console.error('===== VERIFICATION EMAIL FAILED =====');
+      console.error('Error:', emailError.message);
+      console.error('Email service:', process.env.EMAIL_SERVICE);
+      console.error('Gmail user set:', !!process.env.GMAIL_USER);
+      console.error('App password length:', process.env.GMAIL_APP_PASSWORD?.length || 0);
+      console.error('EMAIL_FROM:', process.env.EMAIL_FROM);
+      console.error('=====================================');
       return next(new ErrorResponse('Could not send verification email. Please try again later.', 500));
     }
 
