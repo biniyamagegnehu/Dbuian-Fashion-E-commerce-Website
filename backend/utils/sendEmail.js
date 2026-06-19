@@ -17,7 +17,7 @@ const sendEmail = async (options) => {
         pass: process.env.GMAIL_APP_PASSWORD,
       },
     });
-  } else if (service === 'sendgrid' || process.env.SENDGRID_API_KEY) {
+  } else if (service === 'sendgrid' || (process.env.SENDGRID_API_KEY && process.env.SENDGRID_API_KEY.trim() !== '')) {
     if (!process.env.SENDGRID_API_KEY) {
       throw new Error('SendGrid configuration is missing. Please set SENDGRID_API_KEY.');
     }
