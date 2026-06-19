@@ -15,6 +15,8 @@ const Register = () => {
     phone: ''
   });
   const [error, setError] = useState('');
+  const [registeredEmail, setRegisteredEmail] = useState('');
+  const [verificationSent, setVerificationSent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { register, googleLogin, isLoading } = useAuth();
@@ -60,8 +62,15 @@ const Register = () => {
     if (!validateForm()) return;
 
     try {
-      await register(formData);
-      navigate('/');
+      const result = await register(formData);
+      if (result?.requiresVerification) {
+        // Local registration: show email verification notice
+        setRegisteredEmail(formData.email);
+        setVerificationSent(true);
+      } else {
+        // Token returned (future use / admin created)
+        navigate('/');
+      }
     } catch (err) {
       setError(err.message || 'An error occurred during registration');
     }
@@ -122,6 +131,83 @@ const Register = () => {
       required: false 
     },
   ];
+
+  // --- Email Verification Sent Screen ---
+  if (verificationSent) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 py-12 px-4 relative overflow-hidden">
+        <div className="absolute inset-0 z-0 pointer-events-none">
+          {[...Array(8)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute rounded-full bg-gradient-to-r from-cyan-500/10 to-purple-500/10"
+              style={{
+                width: Math.random() * 100 + 40,
+                height: Math.random() * 100 + 40,
+                top: `${Math.random() * 100}%`,
+                left: `${Math.random() * 100}%`,
+              }}
+              animate={{ x: [0, 25, 0], y: [0, -25, 0] }}
+              transition={{ duration: 18 + i * 2, repeat: Infinity, repeatType: 'reverse' }}
+            />
+          ))}
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 24, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.6, type: 'spring', stiffness: 100 }}
+          className="max-w-md w-full relative z-10"
+        >
+          <GlassCard className="p-8 backdrop-blur-xl border border-white/20 text-center">
+            <motion.div
+              className="flex justify-center mb-6"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: 0.5, delay: 0.2, type: 'spring' }}
+            >
+              <div className="w-20 h-20 bg-green-500/20 border-2 border-green-500/40 rounded-full flex items-center justify-center text-4xl">
+                📬
+              </div>
+            </motion.div>
+
+            <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-cyan-400 mb-3">
+              Almost there!
+            </h2>
+            <p className="text-gray-300 mb-2">
+              We've sent a verification email to:
+            </p>
+            <p className="text-cyan-400 font-semibold mb-4">
+              {registeredEmail}
+            </p>
+            <p className="text-gray-400 text-sm leading-relaxed mb-8">
+              Please click the link in that email to activate your account.
+              The link is valid for <strong className="text-amber-400">24 hours</strong>.
+            </p>
+
+            <div className="flex flex-col gap-3">
+              <Link
+                to="/login"
+                className="inline-block px-8 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-semibold rounded-xl shadow-lg shadow-cyan-500/25 transition-all duration-300"
+              >
+                🔑 Go to Login
+              </Link>
+              <Link
+                to={`/resend-verification?email=${encodeURIComponent(registeredEmail)}`}
+                className="inline-block px-8 py-3 border border-gray-600 hover:border-cyan-400/50 text-gray-400 hover:text-white font-semibold rounded-xl transition-all duration-300 text-sm"
+              >
+                📧 Didn't receive it? Resend
+              </Link>
+            </div>
+
+            <p className="text-gray-600 text-xs mt-6">
+              Check your spam folder if you don't see it in your inbox.
+            </p>
+          </GlassCard>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">

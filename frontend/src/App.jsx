@@ -17,6 +17,10 @@ import Register from './pages/Register';
 import About from './pages/About';
 import Contact from './pages/Contact';
 import Unauthorized from './pages/Unauthorized';
+import VerifyEmail from './pages/VerifyEmail';
+import ResendVerification from './pages/ResendVerification';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 
 // Account pages
 import AccountLayout from './pages/account/AccountLayout';
@@ -101,6 +105,12 @@ function AppContent() {
             <Route path="/about" element={<AnimatedPage><About /></AnimatedPage>} />
             <Route path="/contact" element={<AnimatedPage><Contact /></AnimatedPage>} />
             <Route path="/unauthorized" element={<AnimatedPage><Unauthorized /></AnimatedPage>} />
+
+            {/* Email verification & password reset */}
+            <Route path="/verify-email/:token" element={<AnimatedPage><VerifyEmail /></AnimatedPage>} />
+            <Route path="/resend-verification" element={<AnimatedPage><ResendVerification /></AnimatedPage>} />
+            <Route path="/forgot-password" element={<AnimatedPage><ForgotPassword /></AnimatedPage>} />
+            <Route path="/reset-password/:token" element={<AnimatedPage><ResetPassword /></AnimatedPage>} />
 
             {/* Admin Routes */}
             <Route path="/admin" element={<AdminRoute><AdminLayout><Dashboard /></AdminLayout></AdminRoute>} />

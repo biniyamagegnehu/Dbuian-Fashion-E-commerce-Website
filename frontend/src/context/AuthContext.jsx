@@ -124,8 +124,15 @@ export const AuthProvider = ({ children }) => {
       const response = await authAPI.register(userData);
       const { user, token, message } = response.data;
 
-      handleAuthSuccess(user, token);
-      return { user, message };
+      if (token && user) {
+        // If backend returns a token (e.g., future admin-created users), log in immediately
+        handleAuthSuccess(user, token);
+        return { user, message };
+      } else {
+        // Normal case: local registration — email not yet verified, no token issued
+        dispatch({ type: 'SET_INITIALIZED' });
+        return { message, requiresVerification: true };
+      }
     } catch (error) {
       const errorMessage = error.response?.data?.error || error.message || 'Registration failed';
       dispatch({

@@ -211,6 +211,12 @@ export const authAPI = {
   updateProfile: (userData) => api.put('/api/auth/profile', userData),
   updateDeliveryInfo: (info) => api.put('/api/auth/delivery-info', info),
   updatePassword: (passwordData) => api.put('/api/auth/updatepassword', passwordData),
+  // Email verification
+  verifyEmail: (token) => api.get(`/api/auth/verify-email/${token}`),
+  resendVerification: (email) => api.post('/api/auth/resend-verification', { email }),
+  // Password reset
+  forgotPassword: (email) => api.post('/api/auth/forgot-password', { email }),
+  resetPassword: (token, data) => api.put(`/api/auth/reset-password/${token}`, data),
 };
 
 // Admin Auth API

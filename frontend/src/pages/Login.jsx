@@ -13,6 +13,8 @@ const Login = () => {
     rememberMe: false
   });
   const [error, setError] = useState('');
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [unverifiedEmail, setUnverifiedEmail] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const { login, googleLogin, isLoading } = useAuth();
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -29,6 +31,8 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setNeedsVerification(false);
+    setUnverifiedEmail('');
 
     if (!formData.email || !formData.password) {
       setError('Please fill in all fields');
@@ -43,7 +47,15 @@ const Login = () => {
         navigate('/');
       }
     } catch (err) {
-      setError(err.message);
+      // Check if backend flagged unverified email
+      const axiosError = err?.response?.data || {};
+      if (axiosError.needsVerification) {
+        setNeedsVerification(true);
+        setUnverifiedEmail(axiosError.email || formData.email);
+        setError(axiosError.error || 'Please verify your email before logging in.');
+      } else {
+        setError(err.message);
+      }
     }
   };
 
@@ -169,13 +181,28 @@ const Login = () => {
           {/* Error Message */}
           {error && (
             <motion.div 
-              className="bg-red-400/10 border border-red-400/20 text-red-400 p-4 rounded-xl mb-6 flex items-center"
+              className="bg-red-400/10 border border-red-400/20 text-red-400 p-4 rounded-xl mb-6"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.3 }}
             >
-              <span className="mr-2">⚠️</span>
-              {error}
+              <div className="flex items-start">
+                <span className="mr-2 mt-0.5">⚠️</span>
+                <div>
+                  <p>{error}</p>
+                  {needsVerification && (
+                    <p className="mt-2 text-sm">
+                      Didn't receive the email?{' '}
+                      <Link
+                        to={`/resend-verification${unverifiedEmail ? `?email=${encodeURIComponent(unverifiedEmail)}` : ''}`}
+                        className="text-cyan-400 hover:text-cyan-300 underline font-medium"
+                      >
+                        Resend verification email
+                      </Link>
+                    </p>
+                  )}
+                </div>
+              </div>
             </motion.div>
           )}
 
@@ -267,9 +294,9 @@ const Login = () => {
               </div>
 
               <div className="text-sm">
-                <a href="#" className="font-medium text-cyan-400 hover:text-cyan-300 transition-colors duration-300 hover:underline">
+                <Link to="/forgot-password" className="font-medium text-cyan-400 hover:text-cyan-300 transition-colors duration-300 hover:underline">
                   Forgot password?
-                </a>
+                </Link>
               </div>
             </motion.div>
 
