@@ -46,7 +46,20 @@ npm install
    - `JWT_EXPIRE`: Token expiration time (e.g., `30d`).
    - `FRONTEND_URL`: URL of the local running frontend (default: `http://localhost:5173`).
    - `NODE_ENV`: Set to `development` for local testing.
-   - *(Optional)* Cloudinary and SendGrid credentials if those features are used.
+
+### Email Configuration (Gmail SMTP)
+To send verification and password reset emails, we use Gmail SMTP.
+> **Important:** Do NOT use your normal Gmail password. You must use a Google App Password.
+
+1. Enable **2-Step Verification** in your Google account settings.
+2. Go to [Google App Passwords](https://myaccount.google.com/apppasswords).
+3. Create a new App Password (e.g., name it "Dbuian Fashion Local").
+4. Copy the generated 16-character password and paste it into `backend/.env` under `GMAIL_APP_PASSWORD`.
+5. Update `GMAIL_USER`, `EMAIL_FROM`, and `FROM_EMAIL` to match your Gmail address.
+6. Set `EMAIL_SERVICE=gmail`.
+7. **Restart the backend** after saving `.env`.
+
+*(Optional)* SendGrid is also supported via `SENDGRID_USERNAME` and `SENDGRID_API_KEY` if `EMAIL_SERVICE` is set to `sendgrid`.
 
 ### Admin Account Setup
 By default, all registered users have the `user` role. To create an admin account:
