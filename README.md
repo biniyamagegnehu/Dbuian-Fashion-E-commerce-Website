@@ -56,6 +56,13 @@ By default, all registered users have the `user` role. To create an admin accoun
 4. Update the `role` field from `"user"` to `"admin"`.
 5. Log in with that account, and you will be redirected to the Admin Dashboard (`/admin/dashboard`).
 
+### Customer Account Features
+Customers can manage their personal profiles by clicking "My Account" in the top navigation.
+- **Profile Management**: Update name and phone number.
+- **Security**: Update local password (disabled for Google-only sign-ins).
+- **Delivery Info**: Save shipping details to prefill the checkout form.
+- **Order Tracking**: View order history, timelines, and status updates.
+
 ### Google OAuth Setup
 This project uses **Google Identity Services** for Google login/registration.
 

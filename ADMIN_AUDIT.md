@@ -111,6 +111,7 @@ All admin routes correctly implement two layers of middleware:
 | **Users** | Read, Update Role, Delete | Add User, Pagination | Add User button does nothing | Medium |
 | **Reviews** | Read, Delete, Export | Respond to Review, Pagination | Respond button does nothing | Medium |
 | **Layout** | Responsive Sidebar | Back to Store link | **Sidebar links are broken** | Critical |
+| **Profile** | Admin Profile, Security | Activity Logs | - | Low |
 
 ---
 
