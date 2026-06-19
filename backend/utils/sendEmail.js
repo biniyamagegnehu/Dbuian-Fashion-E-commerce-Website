@@ -20,7 +20,21 @@ const sendEmail = async (options) => {
   };
 
   // Send email
-  await transporter.sendMail(mailOptions);
+  try {
+    await transporter.sendMail(mailOptions);
+  } catch (error) {
+    console.error('Email could not be sent:', error.message);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('--- DEVELOPMENT MODE: EMAIL MOCKED ---');
+      console.log(`To: ${options.email}`);
+      console.log(`Subject: ${options.subject}`);
+      console.log(`HTML Message:\n${options.message}`);
+      console.log('----------------------------------------');
+      // Resolve successfully so the flow continues in dev mode
+      return;
+    }
+    throw error;
+  }
 };
 
 module.exports = sendEmail;
