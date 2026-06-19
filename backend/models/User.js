@@ -2,6 +2,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 
 const userSchema = new mongoose.Schema({
   name: {
@@ -65,9 +66,35 @@ const userSchema = new mongoose.Schema({
   avatar: {
     type: String
   },
+  // Legacy field — preserved for backward compatibility
   isVerified: {
     type: Boolean,
     default: false
+  },
+  // --- Email verification ---
+  isEmailVerified: {
+    type: Boolean,
+    default: false
+  },
+  emailVerifiedAt: {
+    type: Date
+  },
+  emailVerificationToken: {
+    type: String,
+    select: false
+  },
+  emailVerificationExpire: {
+    type: Date,
+    select: false
+  },
+  // --- Password reset ---
+  passwordResetToken: {
+    type: String,
+    select: false
+  },
+  passwordResetExpire: {
+    type: Date,
+    select: false
   },
   createdAt: {
     type: Date,
@@ -97,6 +124,46 @@ userSchema.methods.getSignedJwtToken = function() {
 // Match user entered password with hashed password in database
 userSchema.methods.matchPassword = async function(enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
+};
+
+/**
+ * Generate a raw email verification token, store the hashed version,
+ * set 24-hour expiry, and return the raw token to be sent via email.
+ */
+userSchema.methods.getEmailVerificationToken = function() {
+  // Generate raw token
+  const rawToken = crypto.randomBytes(32).toString('hex');
+
+  // Hash and store — never store raw token
+  this.emailVerificationToken = crypto
+    .createHash('sha256')
+    .update(rawToken)
+    .digest('hex');
+
+  // Expire in 24 hours
+  this.emailVerificationExpire = Date.now() + 24 * 60 * 60 * 1000;
+
+  return rawToken;
+};
+
+/**
+ * Generate a raw password reset token, store the hashed version,
+ * set 15-minute expiry, and return the raw token to be sent via email.
+ */
+userSchema.methods.getPasswordResetToken = function() {
+  // Generate raw token
+  const rawToken = crypto.randomBytes(32).toString('hex');
+
+  // Hash and store — never store raw token
+  this.passwordResetToken = crypto
+    .createHash('sha256')
+    .update(rawToken)
+    .digest('hex');
+
+  // Expire in 15 minutes
+  this.passwordResetExpire = Date.now() + 15 * 60 * 1000;
+
+  return rawToken;
 };
 
 module.exports = mongoose.model('User', userSchema);
