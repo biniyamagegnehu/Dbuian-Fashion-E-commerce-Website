@@ -21,6 +21,20 @@ const Checkout = () => {
     blockNumber: "",
     roomDormNumber: "",
   });
+  const [saveDeliveryInfo, setSaveDeliveryInfo] = useState(false);
+  const [isPrefilled, setIsPrefilled] = useState(false);
+
+  useEffect(() => {
+    if (user && user.deliveryInfo && !isPrefilled) {
+      setFormData(prev => ({
+        ...prev,
+        phoneNumber: prev.phoneNumber || user.deliveryInfo.phoneNumber || "",
+        blockNumber: prev.blockNumber || user.deliveryInfo.blockNumber || "",
+        roomDormNumber: prev.roomDormNumber || user.deliveryInfo.roomDormNumber || ""
+      }));
+      setIsPrefilled(true);
+    }
+  }, [user, isPrefilled]);
 
   // Redirect if not authenticated or cart is empty
   useEffect(() => {
@@ -218,6 +232,22 @@ const Checkout = () => {
         },
         paymentMethod,
       };
+
+      // Save delivery info if requested
+      if (saveDeliveryInfo) {
+        try {
+          const { authAPI } = await import('../services/api');
+          await authAPI.updateDeliveryInfo({
+            phoneNumber: formData.phoneNumber.trim(),
+            blockNumber: formData.blockNumber.trim(),
+            roomDormNumber: formData.roomDormNumber.trim()
+          });
+          console.log('✅ Delivery info saved for future use');
+        } catch (err) {
+          console.error('❌ Failed to save delivery info:', err);
+          // Do not block checkout if saving delivery info fails
+        }
+      }
 
       console.log(
         "📦 Final order data to send:",
@@ -516,6 +546,19 @@ const Checkout = () => {
                       placeholder="e.g., Room 101, Dorm 2B"
                     />
                   </div>
+                </div>
+
+                <div className="mt-4 flex items-center">
+                  <input
+                    type="checkbox"
+                    id="saveDeliveryInfo"
+                    checked={saveDeliveryInfo}
+                    onChange={(e) => setSaveDeliveryInfo(e.target.checked)}
+                    className="w-4 h-4 text-cyan-500 bg-gray-800 border-gray-700 rounded focus:ring-cyan-500 focus:ring-2 accent-cyan-500"
+                  />
+                  <label htmlFor="saveDeliveryInfo" className="ml-2 text-sm text-gray-400 cursor-pointer select-none">
+                    Save this delivery information for next time
+                  </label>
                 </div>
 
                 {/* Delivery Information Note */}
