@@ -201,7 +201,6 @@ export const paymentsAPI = {
   initializeChapa: (checkoutData) => api.post('/api/payments/chapa/initialize', checkoutData),
   verifyChapa: (txRef) => api.get(`/api/payments/chapa/verify/${encodeURIComponent(txRef)}`),
 };
-
 // Auth API
 export const authAPI = {
   login: (credentials) => api.post('/api/auth/login', credentials),
@@ -209,6 +208,8 @@ export const authAPI = {
   googleAuth: (credential) => api.post('/api/auth/google', { credential }),
   getMe: () => api.get('/api/auth/me'),
   updateDetails: (userData) => api.put('/api/auth/updatedetails', userData),
+  updateProfile: (userData) => api.put('/api/auth/profile', userData),
+  updateDeliveryInfo: (info) => api.put('/api/auth/delivery-info', info),
   updatePassword: (passwordData) => api.put('/api/auth/updatepassword', passwordData),
 };
 

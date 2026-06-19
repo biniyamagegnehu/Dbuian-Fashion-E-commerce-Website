@@ -164,6 +164,14 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const updateUser = (updatedUser) => {
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+    dispatch({
+      type: 'AUTH_SUCCESS',
+      payload: { user: updatedUser, token: state.token }
+    });
+  };
+
   const clearError = () => {
     dispatch({ type: 'CLEAR_ERROR' });
   };
@@ -176,6 +184,7 @@ export const AuthProvider = ({ children }) => {
         googleLogin,
         register,
         logout,
+        updateUser,
         clearError
       }}
     >
