@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { useAuth } from '../../../context/AuthContext';
-import { authAPI } from '../../../services/api';
-import ProfileForm from '../../../components/account/ProfileForm';
+import { useAuth } from '../../context/AuthContext';
+import { authAPI } from '../../services/api';
+import ProfileForm from '../../components/account/ProfileForm';
 
 const AdminProfile = () => {
   const { user, updateUser } = useAuth();
