@@ -47,6 +47,11 @@ const userSchema = new mongoose.Schema({
     blockNumber: String,
     roomDormNumber: String
   },
+  deliveryInfo: {
+    phoneNumber: String,
+    blockNumber: String,
+    roomDormNumber: String
+  },
   googleId: {
     type: String,
     unique: true,

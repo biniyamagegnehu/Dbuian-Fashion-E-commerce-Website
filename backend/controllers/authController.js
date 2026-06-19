@@ -114,6 +114,37 @@ exports.getMe = async (req, res, next) => {
   }
 };
 
+// @desc    Update user profile (new endpoint for account settings)
+// @route   PUT /api/auth/profile
+// @access  Private
+exports.updateProfile = async (req, res, next) => {
+  try {
+    // Only allow updating specific fields
+    const fieldsToUpdate = {
+      name: req.body.name,
+      phone: req.body.phone
+    };
+
+    if (req.body.avatar) {
+      fieldsToUpdate.avatar = req.body.avatar;
+    }
+
+    // Role and email are NOT updatable through this endpoint for security
+
+    const user = await User.findByIdAndUpdate(req.user.id, fieldsToUpdate, {
+      new: true,
+      runValidators: true
+    });
+
+    res.status(200).json({
+      success: true,
+      user
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Update user details
 // @route   PUT /api/auth/updatedetails
 // @access  Private
@@ -141,12 +172,43 @@ exports.updateDetails = async (req, res, next) => {
   }
 };
 
+// @desc    Update delivery info
+// @route   PUT /api/auth/delivery-info
+// @access  Private
+exports.updateDeliveryInfo = async (req, res, next) => {
+  try {
+    const { phoneNumber, blockNumber, roomDormNumber } = req.body;
+    
+    const user = await User.findById(req.user.id);
+    
+    user.deliveryInfo = {
+      phoneNumber,
+      blockNumber,
+      roomDormNumber
+    };
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      user
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Update password
 // @route   PUT /api/auth/updatepassword
 // @access  Private
 exports.updatePassword = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id).select('+password');
+
+    // Handle Google-only accounts that might not have a password
+    if (!user.password && user.authProvider === 'google') {
+      return next(new ErrorResponse('This is a Google-linked account without a password. Please sign in with Google.', 400));
+    }
 
     // Check current password
     const isMatch = await user.matchPassword(req.body.currentPassword);

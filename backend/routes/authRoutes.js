@@ -5,6 +5,8 @@ const {
   login,
   getMe,
   updateDetails,
+  updateProfile,
+  updateDeliveryInfo,
   updatePassword,
   googleAuth
 } = require('../controllers/authController');
@@ -17,6 +19,9 @@ router.post('/login', login);
 router.post('/google', googleAuth);
 router.get('/me', protect, getMe);
 router.put('/updatedetails', protect, updateDetails);
-router.put('/updatepassword', protect, updatePassword);
+router.put('/profile', protect, updateProfile);
+router.put('/delivery-info', protect, updateDeliveryInfo);
+router.put('/password', protect, updatePassword); // Use same controller as updatepassword
+router.put('/updatepassword', protect, updatePassword); // Legacy support
 
 module.exports = router;
