@@ -18,6 +18,14 @@ import About from './pages/About';
 import Contact from './pages/Contact';
 import Unauthorized from './pages/Unauthorized';
 
+// Account pages
+import AccountLayout from './pages/account/AccountLayout';
+import Profile from './pages/account/Profile';
+import Security from './pages/account/Security';
+import Delivery from './pages/account/Delivery';
+import Orders from './pages/account/Orders';
+import OrderDetail from './pages/account/OrderDetail';
+
 // Route protection
 import AdminRoute from './components/routing/AdminRoute';
 import PrivateRoute from './components/routing/PrivateRoute';
@@ -30,6 +38,8 @@ import AdminCategories from './pages/admin/Categories';
 import AdminOrders from './pages/admin/Orders';
 import AdminUsers from './pages/admin/Users';
 import AdminReviews from './pages/admin/Reviews';
+import AdminProfile from './pages/admin/Profile';
+import AdminSecurity from './pages/admin/Security';
 
 const pageVariants = {
   initial: { opacity: 0, y: 20 },
@@ -74,6 +84,17 @@ function AppContent() {
             <Route path="/checkout" element={<PrivateRoute><AnimatedPage><Checkout /></AnimatedPage></PrivateRoute>} />
             <Route path="/payment/success" element={<PrivateRoute><AnimatedPage><PaymentResult /></AnimatedPage></PrivateRoute>} />
             <Route path="/order-success" element={<PrivateRoute><AnimatedPage><PaymentResult /></AnimatedPage></PrivateRoute>} />
+            
+            {/* Account Routes */}
+            <Route path="/account" element={<PrivateRoute><AccountLayout /></PrivateRoute>}>
+              <Route index element={<Profile />} />
+              <Route path="profile" element={<Profile />} />
+              <Route path="security" element={<Security />} />
+              <Route path="delivery" element={<Delivery />} />
+              <Route path="orders" element={<Orders />} />
+              <Route path="orders/:id" element={<OrderDetail />} />
+            </Route>
+
             <Route path="/my-orders" element={<PrivateRoute><AnimatedPage><MyOrders /></AnimatedPage></PrivateRoute>} />
             <Route path="/login" element={<AnimatedPage><Login /></AnimatedPage>} />
             <Route path="/register" element={<AnimatedPage><Register /></AnimatedPage>} />
@@ -89,6 +110,8 @@ function AppContent() {
             <Route path="/admin/orders" element={<AdminRoute><AdminLayout><AdminOrders /></AdminLayout></AdminRoute>} />
             <Route path="/admin/users" element={<AdminRoute><AdminLayout><AdminUsers /></AdminLayout></AdminRoute>} />
             <Route path="/admin/reviews" element={<AdminRoute><AdminLayout><AdminReviews /></AdminLayout></AdminRoute>} />
+            <Route path="/admin/profile" element={<AdminRoute><AdminLayout><AdminProfile /></AdminLayout></AdminRoute>} />
+            <Route path="/admin/security" element={<AdminRoute><AdminLayout><AdminSecurity /></AdminLayout></AdminRoute>} />
 
           </Routes>
         </AnimatePresence>

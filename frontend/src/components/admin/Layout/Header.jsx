@@ -275,12 +275,12 @@ const Header = ({ onMenuClick, user }) => {
                 </div>
                 
                 <div className="p-2">
-                  <button className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-white/5 transition-colors text-left">
+                  <button onClick={() => { setShowUserMenu(false); navigate('/admin/profile'); }} className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-white/5 transition-colors text-left">
                     <User className="w-4 h-4 text-gray-400" />
                     <span className="text-white text-sm">Profile Settings</span>
                   </button>
                   
-                  <button className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-white/5 transition-colors text-left">
+                  <button onClick={() => { setShowUserMenu(false); navigate('/admin/security'); }} className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-white/5 transition-colors text-left">
                     <Settings className="w-4 h-4 text-gray-400" />
                     <span className="text-white text-sm">Account Settings</span>
                   </button>

@@ -144,6 +144,9 @@ const Navbar = () => {
                       </div>
                       <span className="text-sm text-gray-300">Hi, {user.name.split(' ')[0]}</span>
                     </div>
+                    <Link to="/account" className="text-sm text-gray-300 hover:text-cyan-400 transition-colors">
+                      My Account
+                    </Link>
                     {user.role === 'admin' && (
                       <Link to="/admin">
                         <AnimatedButton
@@ -244,6 +247,20 @@ const Navbar = () => {
                 {user ? (
                   <>
                     <div className="px-3 py-2 text-sm text-gray-400">Logged in as {user.name}</div>
+                    <Link
+                      to="/account"
+                      className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700/50 transition-colors"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      My Account
+                    </Link>
+                    <Link
+                      to="/account/orders"
+                      className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700/50 transition-colors"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      My Orders
+                    </Link>
                     {user.role === 'admin' && (
                       <Link
                         to="/admin"
