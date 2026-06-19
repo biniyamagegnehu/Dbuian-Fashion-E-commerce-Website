@@ -42,20 +42,21 @@ const sendEmail = async (options) => {
     html: options.message,
   };
 
-  // Send email
+  // Check if emails should be mocked
+  if (process.env.MOCK_EMAILS === 'true') {
+    console.log('--- DEVELOPMENT MODE: EMAIL MOCKED ---');
+    console.log(`To: ${options.email}`);
+    console.log(`Subject: ${options.subject}`);
+    console.log(`HTML Message:\n${options.message}`);
+    console.log('----------------------------------------');
+    return;
+  }
+
+  // Send real email
   try {
     await transporter.sendMail(mailOptions);
   } catch (error) {
     console.error('Email could not be sent:', error.message);
-    if (process.env.MOCK_EMAILS === 'true') {
-      console.log('--- DEVELOPMENT MODE: EMAIL MOCKED ---');
-      console.log(`To: ${options.email}`);
-      console.log(`Subject: ${options.subject}`);
-      console.log(`HTML Message:\n${options.message}`);
-      console.log('----------------------------------------');
-      // Resolve successfully so the flow continues in dev mode
-      return;
-    }
     throw error;
   }
 };
